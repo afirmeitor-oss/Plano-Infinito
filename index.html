@@ -1,0 +1,2256 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Cosmogonía Subirats · Modelo 3D del Plano Infinito</title>
+<style>
+:root{
+  --bg:#04060b; --panel:#080d14; --panel2:#0c131c; --line:#1a2534; --line2:#243347;
+  --txt:#c6d4e3; --dim:#7b8ca1; --amber:#f4b740; --cyan:#41d3e2; --red:#ff6286; --green:#6fdc8c; --violet:#a68bff;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);
+  font:13px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased}
+#app{display:flex;height:100vh;overflow:hidden}
+#stage{position:relative;flex:1;min-width:0;background:
+  radial-gradient(120% 90% at 50% 8%, #0b1420 0%, #05080e 55%, #02040700 100%)}
+canvas{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
+canvas.dragging{cursor:grabbing}
+
+/* ---------- overlays ---------- */
+#titlebar{position:absolute;top:14px;left:16px;pointer-events:none;max-width:60%}
+#titlebar h1{margin:0;font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:#e8f1fa;font-weight:650}
+#titlebar p{margin:3px 0 0;font-size:11.5px;color:var(--dim);letter-spacing:.02em}
+#titlebar b{color:var(--amber);font-weight:600}
+
+#hud{position:absolute;top:14px;right:16px;text-align:right;pointer-events:none;
+  font:11px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--dim);
+  background:rgba(6,10,16,.55);border:1px solid var(--line);border-radius:6px;padding:7px 10px;backdrop-filter:blur(2px)}
+#hud b{color:#dce8f5;font-weight:600}
+#hud .pol-pos{color:var(--cyan)} #hud .pol-neg{color:var(--red)}
+
+#legend{position:absolute;left:16px;bottom:14px;pointer-events:none;
+  font:10.5px/1.7 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--dim);
+  background:rgba(6,10,16,.5);border:1px solid var(--line);border-radius:6px;padding:6px 10px}
+#legend i{display:inline-block;width:16px;height:0;border-top:2px solid;vertical-align:middle;margin-right:6px}
+
+#caption{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);max-width:min(78%,720px);
+  text-align:center;pointer-events:none;opacity:0;transition:opacity .35s;
+  background:rgba(8,13,20,.82);border:1px solid var(--line2);border-left:3px solid var(--amber);
+  border-radius:6px;padding:9px 14px;font-size:12.5px;color:#dfe9f4}
+#caption.on{opacity:1}
+#caption small{display:block;margin-top:3px;color:var(--dim);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase}
+
+/* ---------- panel ---------- */
+#panel{width:334px;flex:0 0 334px;background:var(--panel);border-left:1px solid var(--line);
+  overflow-y:auto;overscroll-behavior:contain}
+#panel header{padding:15px 16px 12px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0d141d,#080d14)}
+#panel header h1{margin:0;font-size:14px;letter-spacing:.06em;color:#f0f6fc}
+#panel header .sub{margin:4px 0 0;font-size:11px;color:var(--dim)}
+#panel header .sub em{color:var(--amber);font-style:italic}
+.note{margin:10px 16px 0;padding:8px 10px;font-size:10.8px;line-height:1.5;color:#93a5b8;
+  background:#0a1017;border:1px solid var(--line);border-left:2px solid var(--violet);border-radius:4px}
+section{padding:13px 16px;border-bottom:1px solid var(--line)}
+section h2{margin:0 0 9px;font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;color:#8fa2b6;font-weight:650}
+.btns{display:flex;flex-wrap:wrap;gap:6px}
+button{font:inherit;font-size:11.5px;color:#d7e3ef;background:#111a25;border:1px solid var(--line2);
+  border-radius:5px;padding:6px 9px;cursor:pointer;transition:.15s;letter-spacing:.01em}
+button:hover{background:#182434;border-color:#33475f;color:#fff}
+button:active{transform:translateY(1px)}
+button.on{background:#2a2113;border-color:#6a4f18;color:var(--amber)}
+button.wide{flex:1 1 100%}
+.chk{display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;font-size:12px;color:#b9c8d8;user-select:none}
+.chk input{accent-color:var(--amber);width:13px;height:13px;margin:0;cursor:pointer}
+.chk:hover{color:#fff}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;flex:0 0 auto}
+.sld{margin:9px 0 2px}
+.sld label{display:flex;justify-content:space-between;font-size:11.5px;color:#a9bacb;margin-bottom:3px}
+.sld label output{font:11px ui-monospace,Menlo,Consolas,monospace;color:var(--amber)}
+.sld input[type=range]{width:100%;accent-color:var(--amber);height:16px;margin:0;cursor:pointer}
+.bar{height:5px;border-radius:3px;background:#101a25;border:1px solid var(--line);overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--red),var(--amber),var(--cyan))}
+ol.post{margin:0;padding-left:18px;font-size:11.5px;color:#a8b8c9}
+ol.post li{margin-bottom:6px}
+ol.post b{color:#dce8f4;font-weight:600}
+ol.post span{color:#6f8095;font-size:10.5px}
+footer{padding:12px 16px 22px;font-size:10.5px;color:#6f8095;line-height:1.6}
+kbd{background:#131d29;border:1px solid var(--line2);border-bottom-width:2px;border-radius:3px;padding:0 4px;font-size:10px;color:#c3d2e2}
+#panel::-webkit-scrollbar{width:9px}
+#panel::-webkit-scrollbar-thumb{background:#1b2836;border-radius:5px}
+#panel::-webkit-scrollbar-track{background:#070c12}
+@media (max-width:900px){
+  #app{flex-direction:column;height:auto;overflow:auto}
+  #stage{height:62vh;flex:0 0 auto}
+  #panel{width:100%;flex:1 1 auto;border-left:0;border-top:1px solid var(--line)}
+  #legend{display:none}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="c"></canvas>
+    <div id="titlebar">
+      <h1>Cosmogonía Subirats</h1>
+      <p>El Sistema del <b>Plano Infinito</b> · modelo 3D interpretativo de <b>El Libro del Sol</b> (Antonio Subirats)</p>
+    </div>
+    <div id="hud"></div>
+    <div id="legend">
+      <div><i style="border-color:#41d3e2"></i>Norte · carga negativa · centro del plano</div>
+      <div><i style="border-color:#ff6286"></i>Sur · carga positiva · borde exterior</div>
+      <div><i style="border-color:#f4b740"></i>Nexo holoprismático (Sol) y cono de luz</div>
+      <div><i style="border-color:#6fdc8c"></i>Flujo dieléctrico · matriz de fase</div>
+      <div><i style="border-color:#68a860"></i>Terra Firma: costas y límites oceánicos</div>
+      <div><i style="border-color:#bfe3ff"></i>Hielo: plano congelado y sistemas similares</div>
+    </div>
+    <div id="caption"></div>
+  </div>
+
+  <aside id="panel">
+    <header>
+      <h1>Modelo 3D · Cosmogonía Subirats</h1>
+      <p class="sub">Escena interactiva basada en <em>El Libro del Sol</em> — plano infinito estático, Sol holoprisma y universo electromagnético.</p>
+    </header>
+    <div class="note">
+      Representación visual de una <b>cosmogonía alternativa</b> (no forma parte del consenso científico). El modelo reproduce con fines de estudio los postulados del autor; las proporciones son relativas, no métricas.
+    </div>
+
+    <section>
+      <h2>Cámara</h2>
+      <div class="btns">
+        <button data-view="persp">Perspectiva</button>
+        <button data-view="cenital">Cenital</button>
+        <button data-view="lateral">Lateral</button>
+        <button data-view="horizonte">Horizonte</button>
+        <button data-view="superficie">Desde el plano</button>
+        <button data-view="obs">Ojos del observador</button>
+        <button id="btnReset">Reencuadrar</button>
+      </div>
+      <label class="chk" style="margin-top:9px"><input type="checkbox" id="chkAuto"> Rotación automática</label>
+      <label class="chk"><input type="checkbox" id="chkPlay" checked> Animación (día / año)</label>
+    </section>
+
+    <section>
+      <h2>Capas del modelo</h2>
+      <div class="grid2">
+        <label class="chk"><input type="checkbox" data-layer="plano" checked><span><i class="sw" style="background:#2c3d52"></i>Plano infinito</span></label>
+        <label class="chk"><input type="checkbox" data-layer="rejilla" checked><span><i class="sw" style="background:#41d3e2"></i>Rejilla y polos</span></label>
+        <label class="chk"><input type="checkbox" data-layer="mapa" checked><span><i class="sw" style="background:#68a860"></i>Terra Firma (cap. 17)</span></label>
+        <label class="chk"><input type="checkbox" data-layer="equin" checked><span><i class="sw" style="background:#c9b6ff"></i>Meridianos del equinoccio</span></label>
+        <label class="chk"><input type="checkbox" data-layer="sistemas" checked><span><i class="sw" style="background:#bfe3ff"></i>Sistemas lejanos</span></label>
+        <label class="chk"><input type="checkbox" data-layer="obs" checked><span><i class="sw" style="background:#6fdc8c"></i>Observador</span></label>
+        <label class="chk"><input type="checkbox" data-layer="sol" checked><span><i class="sw" style="background:#f4b740"></i>Sol holoprisma</span></label>
+        <label class="chk"><input type="checkbox" data-layer="cono" checked><span><i class="sw" style="background:#ffd27a"></i>Cono y rayos</span></label>
+        <label class="chk"><input type="checkbox" data-layer="campo" checked><span><i class="sw" style="background:#6fdc8c"></i>Flujo dieléctrico</span></label>
+        <label class="chk"><input type="checkbox" data-layer="tray" checked><span><i class="sw" style="background:#a68bff"></i>Trayectoria anual</span></label>
+        <label class="chk"><input type="checkbox" data-layer="giro" checked><span><i class="sw" style="background:#c9d8e8"></i>Giroscopio</span></label>
+        <label class="chk"><input type="checkbox" data-layer="switch" checked><span><i class="sw" style="background:#ff6286"></i>El Interruptor</span></label>
+        <label class="chk"><input type="checkbox" data-layer="nexos" checked><span><i class="sw" style="background:#8ea6c0"></i>Nexos lejanos</span></label>
+        <label class="chk"><input type="checkbox" data-layer="hidra"><span><i class="sw" style="background:#7ee0a0"></i>Hidra del caos</span></label>
+        <label class="chk"><input type="checkbox" data-layer="etiq" checked><span><i class="sw" style="background:#e8f1fa"></i>Etiquetas</span></label>
+        <label class="chk"><input type="checkbox" data-layer="ejes"><span><i class="sw" style="background:#5b6b7d"></i>Ejes de referencia</span></label>
+      </div>
+    </section>
+
+    <section>
+      <h2>Mapa y observador</h2>
+      <div class="sld"><label>Latitud del observador <output id="oLat">40.4°N 3.7°O</output></label><input type="range" id="sLat" min="-58" max="85" step="0.1" value="40.4"></div>
+      <div class="sld"><label>Longitud del observador <output id="oLon">—</output></label><input type="range" id="sLon" min="-180" max="180" step="0.1" value="-3.7"></div>
+      <div style="font-size:10.2px;color:#6f8095;margin:2px 0 4px">El recuadro «cielo local» (abajo a la derecha) muestra la posición del holoprisma —acimut y altura— tal como la ve ese observador, con su trayectoria diaria y el horizonte.</div>
+    </section>
+
+    <section>
+      <h2>Parámetros</h2>
+      <div class="sld"><label>Hora del día <output id="oHora">12:00</output></label><input type="range" id="sHora" min="0" max="24" step="0.05" value="12"></div>
+      <div class="sld"><label>Permitividad / fase estacional <output id="oFase">equinoccio</output></label><input type="range" id="sFase" min="-1" max="1" step="0.01" value="0"></div>
+      <div style="font-size:10.2px;color:#6f8095;margin:1px 0 4px">Al mover la fase se fija en modo manual · doble clic sobre el deslizador = fase automática.</div>
+      <div class="sld"><label>Altura del nexo solar <output id="oAlt">30 u</output></label><input type="range" id="sAlt" min="10" max="62" step="0.5" value="30"></div>
+      <div class="sld"><label>Apertura del cono de luz <output id="oCono">42 u</output></label><input type="range" id="sCono" min="18" max="75" step="1" value="42"></div>
+      <div class="sld"><label>Densidad de flujo dieléctrico <output id="oFlujo">60 %</output></label><input type="range" id="sFlujo" min="0" max="100" step="1" value="60"></div>
+      <div class="sld"><label>Velocidad de simulación <output id="oVel">1.0×</output></label><input type="range" id="sVel" min="0" max="3" step="0.05" value="1"></div>
+    </section>
+
+    <section>
+      <h2>Simulaciones</h2>
+      <div class="btns">
+        <button id="btnSwitch" class="on" style="flex:1 1 100%">⏻ El Interruptor: flujo CERRADO (luz emitida)</button>
+        <button id="btnCiclo">▶ Ciclo de los Soles (colisión)</button>
+        <button id="btnCicloReset">Reiniciar ciclo</button>
+      </div>
+      <div class="bar"><i id="barCiclo"></i></div>
+      <div style="font-size:10.8px;color:#7b8ca1;margin-top:6px">Secuencia: cuatro soles anteriores convergen, colisionan y se funden en el <b style="color:#f4b740">Quinto Sol</b> (diluvios y glaciaciones).</div>
+    </section>
+
+    <section>
+      <h2>Exportar</h2>
+      <div class="btns">
+        <button id="btnOBJ">Descargar .obj + .mtl</button>
+        <button id="btnSTL">Descargar .stl</button>
+        <button id="btnPNG">Captura .png</button>
+      </div>
+      <div style="font-size:10.8px;color:#7b8ca1;margin-top:6px">Geometría del estado actual: plano, rejilla, Sol, anillos prismáticos, cono de luz, campo dieléctrico, trayectoria anual, giroscopio e interruptor.</div>
+    </section>
+
+    <section>
+      <h2>Postulados representados</h2>
+      <ol class="post">
+        <li><b>El Interruptor</b> — la emisión luminosa se abre y se cierra: el flujo dieléctrico es la causa de la luz, no un cuerpo en combustión. <span>cap. 1</span></li>
+        <li><b>El Giroscopio</b> — el eje no precesa respecto del plano: la Tierra no rota ni se traslada. <span>cap. 2</span></li>
+        <li><b>Distorsión de los mapas</b> — las distancias oceánicas del modelo esférico son imposibles; el plano las resuelve (travesía del <i>Cutty Sark</i>). <span>cap. 3</span></li>
+        <li><b>Colisión de los soles</b> — varios soles chocaron y se fundieron; cada evento produjo diluvios y glaciaciones. Vivimos en la edad del <b>Quinto Sol</b>. <span>cap. 6</span></li>
+        <li><b>La oscuridad del espacio</b> — el fondo no es vacío euclidiano ni hay astros sólidos lejanos: es ausencia de agrupamiento de flujo. <span>parte II, cap. 6</span></li>
+        <li><b>La Hidra del Caos</b> — turbulencia del campo en la frontera exterior del plano. <span>cap. 7</span></li>
+        <li><b>Sol holoprisma</b> — agrupación de flujos dieléctricos en una matriz de fase: un nexo de permitividad proporcional, no un objeto en un lugar fijo. <span>cap. 16</span></li>
+        <li><b>Fases y estaciones</b> — la oscilación positiva (centrípeta, hacia el Norte negativo) y negativa (centrífuga, hacia el Sur positivo) dicta las estaciones; su subproducto es la radiación de microondas. <span>cap. 16</span></li>
+      </ol>
+    </section>
+
+    <footer>
+      <b style="color:#9fb1c4">Controles:</b> arrastrar = orbitar · rueda = zoom · <kbd>Shift</kbd>+arrastrar = desplazar el centro · <kbd>Espacio</kbd> = pausa · <kbd>1</kbd>–<kbd>5</kbd> = cámaras · <kbd>6</kbd> = ojos del observador · <kbd>L</kbd> = etiquetas · <kbd>I</kbd> = interruptor · <kbd>C</kbd> = ciclo de los soles · <kbd>M</kbd> = plegar la carta.<br>La carta de Terra Firma se arrastra por su barra de título y se pliega con «–».<br><br>
+      Motor 3D propio sobre Canvas 2D (sin librerías externas): funciona sin conexión. Fuente conceptual: Antonio Subirats, <i>El Libro del Sol</i>.
+    </footer>
+  </aside>
+</div>
+<script>
+/* =====================================================================
+   COSMOGONÍA SUBIRATS · motor 3D propio sobre Canvas 2D
+   Sin dependencias externas. Proyección en perspectiva + painter's algorithm.
+   ===================================================================== */
+'use strict';
+const TAU = Math.PI * 2, D2R = Math.PI / 180;
+const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+const lerp  = (a, b, t) => a + (b - a) * t;
+const smooth= t => t * t * (3 - 2 * t);
+const sub3  = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const cross3= (a, b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+const dot3  = (a, b) => a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+function norm3(a){ const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0]/l, a[1]/l, a[2]/l]; }
+function rgba(hex, a){ // hex #rrggbb -> rgba()
+  const n = parseInt(hex.slice(1), 16);
+  return 'rgba(' + ((n>>16)&255) + ',' + ((n>>8)&255) + ',' + (n&255) + ',' + a + ')';
+}
+
+/* ------------------------------- canvas ------------------------------- */
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d', { alpha: false });
+let W = 0, H = 0, DPR = 1, CX = 0, CY = 0, FOCAL = 0;
+
+function resize(){
+  const r = cv.getBoundingClientRect();
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = Math.max(320, Math.round(r.width)); H = Math.max(240, Math.round(r.height));
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  CX = W / 2 + (W > 900 ? (cam.offX || 0) : 0); CY = H / 2;
+}
+window.addEventListener('resize', resize);
+
+/* ------------------------------- cámara ------------------------------- */
+const cam = { yaw: -0.92, pitch: 0.82, dist: 330, tgt: [0, 6, 0], fov: 44 * D2R, offX: 96 };
+let eye = [0,0,0], fwd = [0,0,1], rgt = [1,0,0], upv = [0,1,0];
+const NEAR = 1.0;
+
+function updateCam(){
+  const cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+  eye = [ cam.tgt[0] + cam.dist * cp * Math.sin(cam.yaw),
+          cam.tgt[1] + cam.dist * sp,
+          cam.tgt[2] + cam.dist * cp * Math.cos(cam.yaw) ];
+  fwd = norm3(sub3(cam.tgt, eye));
+  rgt = norm3(cross3(fwd, [0, 1, 0]));
+  upv = cross3(rgt, fwd);
+  FOCAL = (H / 2) / Math.tan(cam.fov / 2);
+}
+
+/* proyección: mundo -> pantalla.  null si queda detrás del plano de recorte */
+function pj(p){
+  const vx = p[0]-eye[0], vy = p[1]-eye[1], vz = p[2]-eye[2];
+  const d = vx*fwd[0] + vy*fwd[1] + vz*fwd[2];
+  if (d < NEAR) return null;
+  const k = FOCAL / d;
+  return [ CX + (vx*rgt[0] + vy*rgt[1] + vz*rgt[2]) * k,
+           CY - (vx*upv[0] + vy*upv[1] + vz*upv[2]) * k, d ];
+}
+
+/* --------------------------- buffer de primitivas --------------------------- */
+/* t: 0 polígono · 1 línea · 2 punto · 3 halo · 4 disco con degradado · 5 etiqueta */
+let prim = [];
+function addPoly(pts, o){
+  o = o || {}; const sp = new Array(pts.length); let d = 0;
+  for (let i = 0; i < pts.length; i++){ const q = pj(pts[i]); if (!q) return; sp[i] = q; d += q[2]; }
+  prim.push({ t:0, layer:o.layer==null?2:o.layer, depth:d/pts.length + (o.bias||0), pts:sp,
+              fill:o.fill||null, stroke:o.stroke||null, lw:o.lw||1,
+              alpha:o.alpha==null?1:o.alpha, dash:o.dash||null });
+}
+function addLine(pts, o){
+  o = o || {}; const sp = []; let d = 0;
+  for (let i = 0; i < pts.length; i++){ const q = pj(pts[i]); if (!q) return; sp.push(q); d += q[2]; }
+  if (sp.length < 2) return;
+  prim.push({ t:1, layer:o.layer==null?2:o.layer, depth:d/sp.length + (o.bias||0), pts:sp,
+              stroke:o.color||'#fff', lw:o.lw||1, alpha:o.alpha==null?1:o.alpha, dash:o.dash||null });
+}
+function addPoint(p, o){
+  o = o || {}; const q = pj(p); if (!q) return;
+  const s = (o.size||2) * (o.persp ? clamp(FOCAL/q[2], .25, 3.2) : 1);
+  prim.push({ t:2, layer:o.layer==null?3:o.layer, depth:q[2], p:q, color:o.color||'#fff', size:s, alpha:o.alpha==null?1:o.alpha });
+}
+function addHalo(p, r, o){
+  o = o || {}; const q = pj(p); if (!q) return;
+  prim.push({ t:3, layer:o.layer==null?3:o.layer, depth:q[2], p:q, rad:Math.max(1, r * FOCAL / q[2]),
+              color:o.color||'#f4b740', alpha:o.alpha==null?.5:o.alpha, ring:o.ring||false });
+}
+function addGradDisc(c, r, stops, o){
+  o = o || {}; const q = pj(c); if (!q) return;
+  const R = Math.max(1, r * FOCAL / q[2]);
+  prim.push({ t:4, layer:o.layer==null?1:o.layer, depth:q[2], p:q, rad:R, stops:stops, alpha:o.alpha==null?1:o.alpha });
+}
+function addText(p, text, o){
+  o = o || {}; const q = pj(p); if (!q) return;
+  prim.push({ t:6, layer:o.layer==null?88:o.layer, depth:q[2], p:q, text:text,
+              color:o.color||'#9fb1c4', size:o.size||10, alpha:o.alpha==null?1:o.alpha,
+              bold:o.bold||false, align:o.align||'center' });
+}
+function addLabel(p, text, o){
+  o = o || {}; const q = pj(p); if (!q) return;
+  prim.push({ t:5, layer:90, depth:q[2], p:q, text:text, sub:o.sub||null,
+              color:o.color||'#c6d4e3', dx:o.dx==null?46:o.dx, dy:o.dy==null?-34:o.dy });
+}
+
+/* ------------------------------- dibujado ------------------------------- */
+let placedLabels = [];   /* cajas ya colocadas (evita solapes de etiquetas) */
+function drawPrim(it){
+  ctx.globalAlpha = it.alpha;
+  if (it.t === 0 || it.t === 1){
+    const pts = it.pts;
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    if (it.t === 0) ctx.closePath();
+    ctx.setLineDash(it.dash || []);
+    if (it.fill){ ctx.fillStyle = it.fill; ctx.fill(); }
+    if (it.stroke){ ctx.lineWidth = it.lw; ctx.strokeStyle = it.stroke; ctx.stroke(); }
+    ctx.setLineDash([]);
+  } else if (it.t === 2){
+    ctx.fillStyle = it.color;
+    ctx.beginPath(); ctx.arc(it.p[0], it.p[1], Math.max(.4, it.size), 0, TAU); ctx.fill();
+  } else if (it.t === 3){
+    const x = it.p[0], y = it.p[1], r = it.rad;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    if (it.ring){
+      g.addColorStop(0, rgba(it.color, 0));
+      g.addColorStop(.72, rgba(it.color, it.alpha * .28));
+      g.addColorStop(.93, rgba(it.color, it.alpha));
+      g.addColorStop(1, rgba(it.color, 0));
+    } else {
+      g.addColorStop(0, rgba(it.color, it.alpha));
+      g.addColorStop(.35, rgba(it.color, it.alpha * .45));
+      g.addColorStop(1, rgba(it.color, 0));
+    }
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+  } else if (it.t === 4){
+    const x = it.p[0], y = it.p[1], r = it.rad;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    for (let i = 0; i < it.stops.length; i++) g.addColorStop(it.stops[i][0], rgba(it.stops[i][1], it.stops[i][2] * it.alpha));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+  } else if (it.t === 6){
+    ctx.globalAlpha = it.alpha;
+    ctx.font = (it.bold ? '600 ' : '') + it.size + 'px ui-monospace,Menlo,Consolas,monospace';
+    ctx.textAlign = it.align; ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(0,0,0,.55)';
+    ctx.fillText(it.text, it.p[0] + 1, it.p[1] + 1);
+    ctx.fillStyle = it.color;
+    ctx.fillText(it.text, it.p[0], it.p[1]);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  } else if (it.t === 5){
+    const x = it.p[0], y = it.p[1];
+    const tx = x + it.dx;
+    ctx.font = '600 11px ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif';
+    const wMain = ctx.measureText(it.text).width;
+    let wSub = 0;
+    ctx.font = '10px ui-monospace,Menlo,Consolas,monospace';
+    if (it.sub) wSub = ctx.measureText(it.sub).width;
+    const bw = Math.max(wMain, wSub) + 14, bh = it.sub ? 32 : 19;
+    /* búsqueda de hueco libre: desplazamientos verticales alternos */
+    let bx = 0, by = 0, found = false;
+    const offs = [0, 22, -22, 44, -44, 68, -68, 94, -94, 122];
+    for (let k = 0; k < offs.length && !found; k++){
+      let by2 = clamp(y + it.dy + offs[k] - bh/2, 6, H - bh - 6);
+      let bx2 = clamp(tx > W - bw - 10 ? tx - bw : tx, 6, W - bw - 6);
+      const hit = placedLabels.some(r =>
+        !(bx2 + bw < r.x - 6 || r.x + r.w < bx2 - 6 || by2 + bh < r.y - 4 || r.y + r.h < by2 - 4));
+      if (!hit){ bx = bx2; by = by2; found = true; }
+    }
+    if (!found){ bx = clamp(tx, 6, W - bw - 6); by = clamp(y + it.dy, 6, H - bh - 6); }
+    placedLabels.push({ x:bx, y:by, w:bw, h:bh });
+    /* guía hasta el borde más próximo de la caja */
+    const ex = x < bx ? bx : (x > bx + bw ? bx + bw : x);
+    const ey = clamp(y, by, by + bh);
+    ctx.globalAlpha = 1;
+    ctx.setLineDash([2, 3]); ctx.lineWidth = 1;
+    ctx.strokeStyle = rgba(it.color, .5);
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = rgba(it.color, .9);
+    ctx.beginPath(); ctx.arc(x, y, 2.1, 0, TAU); ctx.fill();
+    ctx.fillStyle = 'rgba(5,8,13,.86)';
+    ctx.strokeStyle = rgba(it.color, .45); ctx.lineWidth = 1;
+    roundRect(bx, by, bw, bh, 4); ctx.fill(); ctx.stroke();
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = it.color;
+    ctx.font = '600 11px ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif';
+    ctx.fillText(it.text, bx + 7, by + (it.sub ? 10 : 10));
+    if (it.sub){
+      ctx.font = '10px ui-monospace,Menlo,Consolas,monospace';
+      ctx.fillStyle = 'rgba(150,168,188,.92)';
+      ctx.fillText(it.sub, bx + 7, by + 23);
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+function roundRect(x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function render(){
+  placedLabels = [];
+  prim.sort((a, b) => a.layer - b.layer || b.depth - a.depth);
+  for (let i = 0; i < prim.length; i++) drawPrim(prim[i]);
+}
+
+/* ------------------------------- interacción ------------------------------- */
+let dragging = false, shifting = false, lx = 0, ly = 0, pinch = 0;
+cv.addEventListener('pointerdown', e => {
+  const mh = (typeof msHit === 'function') ? msHit(e.offsetX, e.offsetY) : null;
+  if (mh === 'toggle'){ msTogglePending = true; lx = e.clientX; ly = e.clientY; return; }
+  if (mh === 'header'){ chartDrag = { ox: e.offsetX - MS.x, oy: e.offsetY - MS.y }; lx = e.clientX; ly = e.clientY; cv.setPointerCapture(e.pointerId); return; }
+  dragging = true; shifting = e.shiftKey; lx = e.clientX; ly = e.clientY;
+  cv.classList.add('dragging'); cv.setPointerCapture(e.pointerId);
+});
+cv.addEventListener('pointermove', e => {
+  if (chartDrag){
+    MS.x = clamp(e.offsetX - chartDrag.ox, 2, W - MS.w - 2);
+    MS.y = clamp(e.offsetY - chartDrag.oy, 2, H - 24);
+    return;
+  }
+  if (!dragging) return;
+  const dx = e.clientX - lx, dy = e.clientY - ly; lx = e.clientX; ly = e.clientY;
+  if (shifting || e.shiftKey){
+    const s = cam.dist * .0016;
+    cam.tgt[0] -= (dx * rgt[0] + dy * upv[0]) * s;
+    cam.tgt[1] -= (dx * rgt[1] + dy * upv[1]) * s;
+    cam.tgt[2] -= (dx * rgt[2] + dy * upv[2]) * s;
+  } else {
+    cam.yaw   -= dx * .0062;
+    cam.pitch  = clamp(cam.pitch + dy * .0055, -.34, 1.50);
+  }
+});
+['pointerup','pointercancel','pointerleave'].forEach(ev =>
+  cv.addEventListener(ev, () => {
+    dragging = false; cv.classList.remove('dragging');
+    if (msTogglePending){ MS.open = !MS.open; msTogglePending = false; }
+    chartDrag = null;
+  }));
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  cam.dist = clamp(cam.dist * (e.deltaY > 0 ? 1.09 : .917), 34, 900);
+}, { passive: false });
+cv.addEventListener('touchstart', e => { if (e.touches.length === 2) pinch = tdist(e); }, { passive: true });
+cv.addEventListener('touchmove', e => {
+  if (e.touches.length === 2){
+    e.preventDefault();
+    const d = tdist(e);
+    if (pinch) cam.dist = clamp(cam.dist * (pinch / d), 34, 900);
+    pinch = d;
+  }
+}, { passive: false });
+cv.addEventListener('touchend', () => { pinch = 0; }, { passive: true });
+function tdist(e){
+  const a = e.touches[0], b = e.touches[1];
+  return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+}
+
+const VIEWS = {
+  persp:     { yaw:-0.92, pitch:0.82, dist:330, tgt:[0,6,0] },
+  cenital:   { yaw:-1.5708, pitch:1.32, dist:360, tgt:[0,4,0] },
+  lateral:   { yaw:0.10,  pitch:0.055, dist:300, tgt:[0,18,0] },
+  horizonte: { yaw:-0.30, pitch:0.012, dist:360, tgt:[0,8,0] },
+  superficie:{ yaw:-1.15, pitch:0.075, dist:70,  tgt:[0,9,0] }
+};
+function setView(k){
+  const v = VIEWS[k]; if (!v) return;
+  cam.yaw = v.yaw; cam.pitch = v.pitch; cam.dist = v.dist; cam.tgt = v.tgt.slice();
+}
+/* =====================================================================
+   ESTADO + GEOMETRÍA DE LA COSMOGONÍA
+   Convención: el PLANO INFINITO está en y=0. El centro es el NORTE
+   (carga negativa); el borde exterior es el SUR (carga positiva).
+   Unidades relativas (no métricas).
+   ===================================================================== */
+const RP = 100;                 // radio visible del plano
+function rTropMin(){ return 30; }   // límite boreal de la trayectoria del nexo
+function rTropMax(){ return 58; }   // límite austral de la trayectoria del nexo
+const SUN_R = 7.4;              // radio aparente del nexo holoprismático
+const AX_TILT = 23.5 * D2R;     // oblicuidad del eje del giroscopio
+
+const S = {
+  t: 0, dt: 0, speed: 1, playing: true,
+  dayT: 0.5, yearT: 0.25,
+  pol: 0, lockFase: false,
+  sunH: 30, cone: 42, flow: 0.6,
+  emision: true,
+  autoRot: false,
+  layers: { plano:1, rejilla:1, mapa:1, equin:1, sistemas:1, obs:1, sol:1, cono:1, campo:1, tray:1, giro:1, switch:1, nexos:1, hidra:0, etiq:1, ejes:0 },
+  obs: { lat: 22.5, lon: 9 },   // sobre la masa central de Terra Firma
+  ciclo: { active:false, playing:false, t:0, dur: 30, flash:0 }
+};
+
+/* ------------------------- ayudantes geométricos ------------------------- */
+function ringXZ(c, r, n, y){
+  const pts = []; y = (y == null ? c[1] : y);
+  for (let i = 0; i <= n; i++){ const a = i / n * TAU; pts.push([c[0] + r*Math.cos(a), y, c[2] + r*Math.sin(a)]); }
+  return pts;
+}
+function ringFrame(c, r, u, v, n, ph){
+  const pts = []; ph = ph || 0;
+  for (let i = 0; i <= n; i++){
+    const a = ph + i / n * TAU, ca = Math.cos(a)*r, sa = Math.sin(a)*r;
+    pts.push([c[0] + ca*u[0] + sa*v[0], c[1] + ca*u[1] + sa*v[1], c[2] + ca*u[2] + sa*v[2]]);
+  }
+  return pts;
+}
+function annulus(c, r0, r1, seg, y){
+  const pts = []; y = (y == null ? c[1] : y);
+  for (let i = 0; i <= seg; i++){ const a = i/seg*TAU; pts.push([c[0]+r1*Math.cos(a), y, c[2]+r1*Math.sin(a)]); }
+  for (let i = seg; i >= 0; i--){ const a = i/seg*TAU; pts.push([c[0]+r0*Math.cos(a), y, c[2]+r0*Math.sin(a)]); }
+  return pts;
+}
+function perp(a){ // vector perpendicular a `a`
+  const ref = Math.abs(a[1]) < .9 ? [0,1,0] : [1,0,0];
+  const u = norm3(cross3(a, ref)); return [u, norm3(cross3(a, u))];
+}
+function polyAt(pts, i0, i1){ // segmento de polilínea
+  return pts.slice(i0, i1 + 1);
+}
+function samplePoly(pts, u){ // posición y tangente en u (0..1)
+  const n = pts.length - 1, x = clamp(u, 0, 1) * n;
+  const i = Math.min(n - 1, Math.floor(x)), f = x - i;
+  const a = pts[i], b = pts[i + 1];
+  return { p:[lerp(a[0],b[0],f), lerp(a[1],b[1],f), lerp(a[2],b[2],f)], t: norm3(sub3(b, a)) };
+}
+function arrow(pts, u, size, color, alpha, layer){
+  const s = samplePoly(pts, u), t = s.t;
+  const [n1, n2] = perp(t);
+  const tip = [s.p[0]+t[0]*size, s.p[1]+t[1]*size, s.p[2]+t[2]*size];
+  const b1 = [s.p[0]-t[0]*size*.7 + n1[0]*size*.55, s.p[1]-t[1]*size*.7 + n1[1]*size*.55, s.p[2]-t[2]*size*.7 + n1[2]*size*.55];
+  const b2 = [s.p[0]-t[0]*size*.7 - n1[0]*size*.55, s.p[1]-t[1]*size*.7 - n1[1]*size*.55, s.p[2]-t[2]*size*.7 - n1[2]*size*.55];
+  addPoly([tip, b1, b2], { fill: color, alpha: alpha == null ? .9 : alpha, layer: layer || 3 });
+}
+
+/* ======================= 1. PLANO INFINITO ESTÁTICO ======================= */
+function buildPlano(sunGround, rC){
+  const L = S.layers;
+  if (!L.plano) return;
+  // superficie (annillos concéntricos -> sin solapes, orden de pintado estable)
+  const NB = 9, seg = 72;
+  for (let i = 0; i < NB; i++){
+    const r0 = RP * i / NB, r1 = RP * (i + 1) / NB;
+    const a = .96 - .30 * (i / NB);
+    addPoly(annulus([0,0,0], r0, r1, seg, 0), { fill: 'rgba(13,21,32,' + a.toFixed(3) + ')', layer: 0 });
+  }
+  // desvanecido hacia el infinito (el plano continúa)
+  for (let i = 0; i < 5; i++){
+    const r0 = RP * (1 + i * .22), r1 = RP * (1.22 + i * .22);
+    addPoly(annulus([0,0,0], r0, r1, 48, -.02), { fill: 'rgba(9,15,24,' + (0.55 - i*0.09).toFixed(2) + ')', layer: 0 });
+  }
+  // el plano ESTÁ CONGELADO: escarcha y grietas también bajo nuestros continentes
+  addPoly(annulus([0,0,0], 0, RP, 72, .06), { fill:'rgba(150,200,230,.055)', layer:.5 });
+  for (let i = 0; i < 34; i++){
+    const a0 = (i*2.399963) % TAU, r0 = lerp(6, 74, (i*0.6180339887) % 1);
+    const pts = []; let aa = a0, rr = r0;
+    for (let k = 0; k < 4; k++){
+      pts.push([rr*Math.cos(aa), .35, rr*Math.sin(aa)]);
+      aa += .09*Math.sin(i*2.3 + k*1.7); rr += 4 + (k*2 + i%4);
+    }
+    addLine(pts, { color:'#bfe3ff', alpha:.085, lw:1, layer:.8 });
+  }
+  if (!L.rejilla) return;
+  // anillos de la rejilla
+  for (let i = 1; i <= 10; i++){
+    const r = RP * i / 10;
+    addLine(ringXZ([0,0,0], r, 84, .04), { color:'#41627f', alpha: i === 10 ? .6 : .30, lw: i === 10 ? 1.3 : 1, layer: 1 });
+  }
+
+  // radios (meridianos del plano)
+  for (let k = 0; k < 24; k++){
+    const a = k / 24 * TAU;
+    const far = RP * 1.9;
+    addLine([[0,.05,0],[Math.cos(a)*far,.05,Math.sin(a)*far]],
+      { color:'#3a5a76', alpha: k % 6 === 0 ? .46 : .21, lw: k % 6 === 0 ? 1.1 : 1, layer: 1 });
+  }
+
+  // CENTRO = NORTE / carga negativa
+  addLine(ringXZ([0,0,0], 3.4, 40, .2), { color:'#41d3e2', alpha:.9, lw:1.6, layer: 2 });
+  addLine([[-5.5,.2,0],[5.5,.2,0]], { color:'#41d3e2', alpha:.6, lw:1, layer: 2 });
+  addLine([[0,.2,-5.5],[0,.2,5.5]], { color:'#41d3e2', alpha:.6, lw:1, layer: 2 });
+  addHalo([0,1.2,0], 7, { color:'#41d3e2', alpha:.30, layer: 2 });
+  if (L.etiq){
+    addText([Math.cos(-0.55)*RP*1.62, 1.2, Math.sin(-0.55)*RP*1.62], 'PLANO INFINITO · no rota', { color:'#9db8d2', size:10, bold:true });
+  }
+}
+
+/* ================= 2. SOL HOLOPRISMA (nexo de flujos dieléctricos) ================= */
+function buildSol(pos, R, opts){
+  opts = opts || {};
+  const L = S.layers, em = opts.emision == null ? S.emision : opts.emision;
+  const bright = em ? 1 : .16;
+  const spin = S.t * (opts.spin == null ? .22 : opts.spin);
+  // matriz de fase: retículo de puntos alrededor del nexo
+  if (L.campo){
+    const NR = 44;
+    for (let i = 0; i < NR; i++){
+      const y = 1 - 2 * ((i * 0.6180339887) % 1);
+      const rr = Math.sqrt(Math.max(0, 1 - y*y)), a = i * 2.399963 + spin * .5;
+      addPoint([pos[0] + rr*Math.cos(a)*R*1.62, pos[1] + y*R*1.62, pos[2] + rr*Math.sin(a)*R*1.62],
+        { color:'#6fdc8c', size: 1.5, alpha: .42 * bright, layer: 4 });
+    }
+  }
+  if (L.sol){
+    // esfera de fase (alambre): el sol NO es un cuerpo sólido
+    const nM = 9, nP = 5, seg = 26;
+    for (let m = 0; m < nM; m++){
+      const az = m / nM * Math.PI + spin * .12, pts = [];
+      for (let i = 0; i <= seg; i++){
+        const t = -Math.PI/2 + Math.PI * i / seg, rr = Math.cos(t)*R, yy = Math.sin(t)*R;
+        pts.push([pos[0] + rr*Math.cos(az), pos[1] + yy, pos[2] + rr*Math.sin(az)]);
+      }
+      addLine(pts, { color:'#f4b740', alpha:.32*bright, lw:1, layer: 4 });
+    }
+    for (let p = 1; p <= nP; p++){
+      const t = -Math.PI/2 + Math.PI * p / (nP + 1), rr = Math.cos(t)*R, yy = Math.sin(t)*R;
+      addLine(ringXZ(pos, rr, 34, pos[1] + yy), { color:'#f4b740', alpha:.24*bright, lw:1, layer: 4 });
+    }
+    // anillos prismáticos (holoprisma): disco apilado espectral
+    const SPEC = ['#ff5f6d','#ff9d3c','#f4e04d','#5fe08a','#41d3e2','#5b8cff','#a68bff'];
+    for (let i = 0; i < SPEC.length; i++){
+      const dy = (i - 3) * R * .34;
+      const rr = Math.sqrt(Math.max(.08, 1 - (dy/R)*(dy/R)*.55)) * R * 1.34;
+      const ph = spin * (.35 + i * .06) * (i % 2 ? -1 : 1);
+      addLine(ringFrame(pos, rr, [1,0,0], [0,0,1], 44, ph).map(p => [p[0], pos[1] + dy, p[2]]),
+        { color: SPEC[i], alpha: .55 * bright, lw: 1.3, layer: 5 });
+    }
+    // púas prismáticas
+    for (let i = 0; i < 10; i++){
+      const a = spin * .4 + i / 10 * TAU;
+      const l = R * (2.0 + .45 * Math.sin(S.t * 1.7 + i));
+      addLine([pos, [pos[0] + Math.cos(a)*l, pos[1] + Math.sin(a*1.3)*l*.28, pos[2] + Math.sin(a)*l]],
+        { color: SPEC[i % 7], alpha: .20 * bright, lw: 1, layer: 5 });
+    }
+    // núcleo luminoso
+    addHalo(pos, R * (em ? 4.4 : 1.5), { color:'#ffcf6a', alpha:(em ? .30 : .07), layer: 5 });
+    addHalo(pos, R * (em ? 1.9 : 1.0), { color:'#fff3d2', alpha:(em ? .85 : .18), layer: 6 });
+    addHalo(pos, R * (em ? 1.0 : .8), { color:'#ffffff', alpha:(em ? .95 : .2), ring:false, layer: 7 });
+  }
+  if (L.etiq && !opts.silent){
+    addLabel([pos[0], pos[1] + R*1.5, pos[2]], 'SOL HOLOPRISMA', { color:'#f4b740', dx: 40, dy: -40,
+      sub:'nexo de flujo dieléctrico, no cuerpo sólido' });
+  }
+}
+
+/* ================= 3. CONO DE LUZ Y RAYOS DIVERGENTES ================= */
+function buildCono(pos, rC){
+  if (!S.layers.cono || !S.emision) return;
+  const c = [pos[0], 0, pos[2]], n = 30;
+  // superficie del cono (bandas, sin solapes)
+  const NB = 5;
+  for (let i = 0; i < NB; i++){
+    const f0 = i / NB, f1 = (i + 1) / NB;
+    for (let k = 0; k < n; k++){
+      const a0 = k / n * TAU, a1 = (k + 1) / n * TAU;
+      const p = (f, a) => [ lerp(pos[0], c[0] + rC*Math.cos(a), f), lerp(pos[1], 0, f), lerp(pos[2], c[2] + rC*Math.sin(a), f) ];
+      addPoly([p(f0,a0), p(f0,a1), p(f1,a1), p(f1,a0)],
+        { fill: rgba('#ffcf6a', (.030 + .055 * f1)), layer: 3 });
+    }
+  }
+  // aristas
+  for (let k = 0; k < 12; k++){
+    const a = k / 12 * TAU;
+    addLine([pos, [c[0] + rC*Math.cos(a), 0, c[2] + rC*Math.sin(a)]], { color:'#ffd98a', alpha:.22, lw:1, layer: 3 });
+  }
+  addLine(ringXZ(c, rC, 90, .12), { color:'#f4b740', alpha:.6, lw:1.4, layer: 3 });
+  // mancha de día sobre el plano (bandas concéntricas)
+  const NB2 = 14, seg = 54;
+  for (let i = NB2 - 1; i >= 0; i--){
+    const r0 = rC * i / NB2, r1 = rC * (i + 1) / NB2;
+    const a = .30 * Math.pow(1 - i / NB2, 1.6) + .012;
+    addPoly(annulus(c, r0, r1, seg, .16), { fill: rgba('#ffd79a', a), layer: 1 });
+  }
+  // rayos divergentes que continúan más allá del círculo de día
+  for (let k = 0; k < 18; k++){
+    const a = k / 18 * TAU + S.t * .02;
+    const far = rC * 1.55;
+    addLine([pos, [c[0] + far*Math.cos(a), .2, c[2] + far*Math.sin(a)]], { color:'#ffe0a0', alpha:.14, lw:1, layer: 3 });
+    addLine([[c[0] + far*Math.cos(a), .2, c[2] + far*Math.sin(a)],
+             [c[0] + far*1.28*Math.cos(a), -rC*.30, c[2] + far*1.28*Math.sin(a)]], { color:'#ffe0a0', alpha:.07, lw:1, dash:[3,4], layer: 3 });
+  }
+  if (S.layers.etiq){
+    addText([c[0] + rC*.80, 1.4, c[2] + rC*.80], 'círculo de día · rayos divergentes', { color:'#ffd27a', size:9.5 });
+  }
+}
+
+/* ================= 4. FLUJO DIELÉCTRICO / UNIVERSO ELECTROMAGNÉTICO ================= */
+const FIELD = [];
+function initCampo(){
+  const N = 15;
+  for (let k = 0; k < N; k++){
+    const az = k / N * TAU + .21 * Math.sin(k * 1.7);
+    const retorno = (k % 4 === 3);
+    const amp = retorno ? -20 - 8 * ((k * 7) % 5) : 30 + 26 * Math.abs(Math.sin(k * 2.3 + .4));
+    const pts = [], M = 40;
+    for (let i = 0; i <= M; i++){
+      const s = i / M;
+      const rr = ovalRay(az) * Math.pow(s, .92);
+      const yy = amp * Math.sin(Math.PI * Math.pow(s, .82));
+      pts.push([rr * Math.cos(az), yy, rr * Math.sin(az)]);
+    }
+    FIELD.push({ pts, retorno, az, seed: k });
+  }
+}
+function buildCampo(pol){
+  if (!S.layers.campo) return;
+  const inward = pol >= 0;                       // fase positiva = centrípeta (hacia el Norte)
+  const colLine = '#2f7f8c';
+  for (let i = 0; i < FIELD.length; i++){
+    const f = FIELD[i];
+    addLine(f.pts, { color: f.retorno ? '#255a66' : colLine, alpha: f.retorno ? .26 : .34,
+      lw: 1, dash: f.retorno ? [4, 6] : null, layer: 2 });
+  }
+  // flechas de sentido
+  for (let i = 0; i < FIELD.length; i += 2){
+    const f = FIELD[i];
+    arrow(f.pts, inward ? .38 : .62, 2.2, inward ? '#41d3e2' : '#ff6286', .8, 3);
+    arrow(f.pts, inward ? .78 : .22, 1.7, inward ? '#41d3e2' : '#ff6286', .45, 3);
+  }
+  // partículas de flujo
+  const dens = Math.round(lerp(0, 420, S.flow));
+  const col = inward ? '#7fe9f4' : '#ff8fa8';
+  for (let n = 0; n < dens; n++){
+    const fi = n % FIELD.length;
+    const f = FIELD[fi];
+    const dir = (inward ? -1 : 1) * (f.retorno ? -1 : 1);
+    let u = ((n * 0.6180339887 + S.t * 0.085 * (0.6 + (f.seed % 5) * 0.16) * dir) % 1 + 1) % 1;
+    const s = samplePoly(f.pts, u);
+    const fade = Math.sin(Math.PI * u);
+    addPoint(s.p, { color: col, size: 1.35, alpha: .18 + .62 * fade, layer: 3 });
+  }
+  if (S.layers.etiq){
+    const f = FIELD[2], s = samplePoly(f.pts, .45);
+    addLabel(s.p, inward ? 'FASE POSITIVA · centrípeta' : 'FASE NEGATIVA · centrífuga',
+      { color: inward ? '#41d3e2' : '#ff6286', dx: 46, dy: -20,
+        sub: inward ? 'el flujo cae hacia el Norte (−)' : 'el flujo cae hacia el Sur (+)' });
+  }
+}
+
+/* ================= 5. TRAYECTORIA ANUAL ENTRE TRÓPICOS ================= */
+function seasonColor(r, rMin, rMax){
+  const f = clamp((r - rMin) / (rMax - rMin || 1), 0, 1);
+  const cols = [[120,200,255],[110,230,190],[244,224,120],[255,160,110],[255,110,140]];
+  const x = f * (cols.length - 1), i = Math.min(cols.length - 2, Math.floor(x)), t = x - i;
+  const c = cols[i].map((v, k) => Math.round(lerp(v, cols[i+1][k], t)));
+  return '#' + c.map(v => v.toString(16).padStart(2,'0')).join('');
+}
+function buildTray(rSun){
+  if (!S.layers.tray) return;
+  addLine(ringXZ([0,0,0], rTropMin(), 80, .5), { color:'#a68bff', alpha:.5, lw:1, dash:[7,5], layer: 2 });
+  addLine(ringXZ([0,0,0], rTropMax(), 80, .5), { color:'#a68bff', alpha:.5, lw:1, dash:[7,5], layer: 2 });
+  const TURN = 5, seg = TURN * 44;
+  for (let i = 0; i < seg; i += 11){
+    const pts = [];
+    for (let j = i; j <= Math.min(seg, i + 12); j++){
+      const s = j / seg, rr = lerp(rTropMin(), rTropMax(), (1 - Math.cos(TAU * s)) / 2), a = TAU * s;
+      pts.push([rr * Math.cos(a), .55, rr * Math.sin(a)]);
+    }
+    const rr = lerp(rTropMin(), rTropMax(), (1 - Math.cos(TAU * (i / seg))) / 2);
+    addLine(pts, { color: seasonColor(rr, rTropMin(), rTropMax()), alpha:.55, lw:1.5, layer: 2 });
+  }
+  if (S.layers.etiq){
+    addText([rTropMin() * Math.cos(-2.2), 1.4, rTropMin() * Math.sin(-2.2)], 'trópico de Cáncer · 23.4°N', { color:'#b9a4ff', size:9 });
+    addText([rTropMax() * Math.cos(-1.2), 1.4, rTropMax() * Math.sin(-1.2)], 'trópico de Capricornio · 23.4°S', { color:'#b9a4ff', size:9 });
+  }
+}
+
+/* ================= 6. GIROSCOPIO (cap. 2) ================= */
+const GYRO = { pos: [Math.cos(2.15)*46, 0, Math.sin(2.15)*46], azA: -0.42 };
+function buildGiro(){
+  if (!S.layers.giro) return;
+  const c = GYRO.pos, R = 6.4;
+  const ax = [Math.sin(AX_TILT)*Math.cos(GYRO.azA), Math.cos(AX_TILT), Math.sin(AX_TILT)*Math.sin(GYRO.azA)];
+  const [u, v] = perp(ax);
+  const hub = [c[0], c[1] + 9, c[2]];
+  // pedestal
+  addLine(ringXZ(c, 3.6, 26, .1), { color:'#7f93a8', alpha:.7, lw:1.2, layer: 4 });
+  addLine(ringXZ(c, 3.6, 26, 1.6), { color:'#7f93a8', alpha:.5, lw:1, layer: 4 });
+  for (let k = 0; k < 8; k++){
+    const a = k / 8 * TAU;
+    addLine([[c[0]+3.6*Math.cos(a),.1,c[2]+3.6*Math.sin(a)],[c[0]+3.6*Math.cos(a),1.6,c[2]+3.6*Math.sin(a)]],
+      { color:'#7f93a8', alpha:.3, lw:1, layer: 4 });
+  }
+  addLine([c, [hub[0], hub[1]-R*.2, hub[2]]], { color:'#93a7bb', alpha:.7, lw:1.4, layer: 4 });
+  // cardán exterior e interior
+  addLine(ringFrame(hub, R*1.22, u, ax, 40), { color:'#a9bdd0', alpha:.6, lw:1.3, layer: 4 });
+  addLine(ringFrame(hub, R*1.02, v, ax, 40), { color:'#8fa6bb', alpha:.5, lw:1.2, layer: 4 });
+  // rotor (disco que gira) + radios
+  const spin = S.t * 5.2;
+  const disc = ringFrame(hub, R*.82, u, v, 40, spin);
+  addPoly(disc.slice(0, -1), { fill:'rgba(150,180,205,.10)', stroke: rgba('#cfe0f0', .75), lw:1.3, layer: 5 });
+  for (let k = 0; k < 4; k++){
+    const a = spin + k * Math.PI / 2;
+    addLine([hub, [hub[0]+Math.cos(a)*R*.82*u[0]+Math.sin(a)*R*.82*v[0],
+                   hub[1]+Math.cos(a)*R*.82*u[1]+Math.sin(a)*R*.82*v[1],
+                   hub[2]+Math.cos(a)*R*.82*u[2]+Math.sin(a)*R*.82*v[2]]],
+      { color:'#dfeaf5', alpha:.55, lw:1, layer: 5 });
+  }
+  // eje fijo (no precesa)
+  const e1 = [hub[0]+ax[0]*R*2.1, hub[1]+ax[1]*R*2.1, hub[2]+ax[2]*R*2.1];
+  const e2 = [hub[0]-ax[0]*R*2.1, hub[1]-ax[1]*R*2.1, hub[2]-ax[2]*R*2.1];
+  addLine([e2, e1], { color:'#e8f1fa', alpha:.85, lw:1.6, layer: 5 });
+  const ref = [hub[0]+ax[0]*105, hub[1]+ax[1]*105, hub[2]+ax[2]*105];
+  addLine([e1, ref], { color:'#8fa9c4', alpha:.35, lw:1, dash:[5,6], layer: 2 });
+  addPoint(ref, { color:'#ffffff', size: 2.4, alpha: .9, layer: 6 });
+  addHalo(ref, 3.2, { color:'#cfe6ff', alpha:.45, layer: 6 });
+  if (S.layers.etiq){
+    addLabel([hub[0]+ax[0]*R*2.1, hub[1]+ax[1]*R*2.1, hub[2]+ax[2]*R*2.1], 'GIROSCOPIO · eje sin precesión',
+      { color:'#dfeaf5', dx: 40, dy: -34, sub:'eje fijo: el plano no rota (cap. 2)' });
+    addLabel(ref, 'Referencia lejana fija', { color:'#8fa9c4', dx: 20, dy: -22 });
+  }
+}
+
+/* ================= 7. EL INTERRUPTOR (cap. 1) ================= */
+const SW = { pos:[Math.cos(-0.85)*30, 0, Math.sin(-0.85)*30] };
+function buildSwitch(sunPos){
+  if (!S.layers['switch']) return;
+  const c = SW.pos, on = S.emision;
+  const w = 5.2, h = 4.4, d = 3.4, y0 = .2;
+  const V = [];
+  for (let sx of [-1, 1]) for (let sy of [0, 1]) for (let sz of [-1, 1])
+    V.push([c[0] + sx*w/2, y0 + sy*h, c[2] + sz*d/2]);
+  const F = [[0,1,3,2],[4,6,7,5],[0,4,5,1],[2,3,7,6],[0,2,6,4],[1,5,7,3]];
+  for (const f of F) addPoly(f.map(i => V[i]), { fill:'rgba(18,28,40,.85)', stroke:'rgba(96,122,148,.55)', lw:1, layer: 4 });
+  // bornes
+  addPoint([c[0]-w/2, y0+h*.62, c[2]], { color: on ? '#6fdc8c' : '#ff6286', size: 3, alpha: 1, layer: 6 });
+  addPoint([c[0]+w/2, y0+h*.62, c[2]], { color: on ? '#6fdc8c' : '#ff6286', size: 3, alpha: 1, layer: 6 });
+  addHalo([c[0], y0+h*.62, c[2]], on ? 4.2 : 2.4, { color: on ? '#6fdc8c' : '#ff6286', alpha: on ? .5 : .3, layer: 6 });
+  // palanca
+  const ang = on ? 0.95 : -0.62 + Math.sin(S.t*3)*0.02;
+  const piv = [c[0], y0 + h*.62, c[2]];
+  const tip = [piv[0] + Math.cos(ang)*5.6, piv[1] + Math.sin(ang)*5.6, piv[2]];
+  addLine([piv, tip], { color:'#e8f1fa', alpha:.9, lw:2.2, layer: 5 });
+  addPoint(tip, { color:'#f4b740', size: 3.2, alpha: 1, layer: 6 });
+  // conducto de flujo hacia el nexo
+  const mid = [lerp(piv[0], sunPos[0], .5), lerp(piv[1], sunPos[1], .5) + 12, lerp(piv[2], sunPos[2], .5)];
+  addLine([tip, mid, sunPos], { color: on ? '#6fdc8c' : '#5a7288', alpha: on ? .5 : .22, lw:1.2, dash:[6,7], layer: 3 });
+  if (on){
+    for (let i = 0; i < 14; i++){
+      const u = ((i / 14 + S.t * .22) % 1);
+      const p = u < .5
+        ? [lerp(tip[0], mid[0], u*2), lerp(tip[1], mid[1], u*2), lerp(tip[2], mid[2], u*2)]
+        : [lerp(mid[0], sunPos[0], (u-.5)*2), lerp(mid[1], sunPos[1], (u-.5)*2), lerp(mid[2], sunPos[2], (u-.5)*2)];
+      addPoint(p, { color:'#a6ffbe', size: 1.6, alpha: .55 * Math.sin(Math.PI*u), layer: 3 });
+    }
+  }
+  if (S.layers.etiq){
+    addLabel([c[0], y0 + h + 2.4, c[2]], 'EL INTERRUPTOR',
+      { color: on ? '#6fdc8c' : '#ff6286', dx: -34, dy: 34,
+        sub: on ? 'flujo cerrado: el nexo emite (cap. 1)' : 'flujo abierto: sin emisión' });
+  }
+}
+
+/* ================= 8. NEXOS LEJANOS + OSCURIDAD DEL ESPACIO ================= */
+const NEXOS = [];
+function initNexos(){
+  for (let i = 0; i < 40; i++){
+    const a = (i * 2.399963) % TAU;
+    const r = lerp(150, 420, (i * 0.6180339887) % 1);
+    const y = lerp(12, 70, ((i * 0.381966) % 1));
+    NEXOS.push({ p: [Math.cos(a)*r, y, Math.sin(a)*r], s: .6 + ((i*7)%5)*.35 });
+  }
+}
+function buildNexos(){
+  if (!S.layers.nexos) return;
+  for (let i = 0; i < NEXOS.length; i++){
+    const n = NEXOS[i];
+    const tw = .55 + .45 * Math.sin(S.t * .8 + i * 1.7);
+    addPoint(n.p, { color:'#cfe0f0', size: 1.1 * n.s, alpha: .25 + .5 * tw, layer: 2 });
+    if (n.s > 1.5) addHalo(n.p, 3.4 * n.s, { color:'#9fc4e8', alpha: .12 * tw, layer: 2 });
+  }
+  if (S.layers.etiq){
+    addText([NEXOS[3].p[0], NEXOS[3].p[1] + 6, NEXOS[3].p[2]], 'nexos de otros sistemas · sobre el plano, no en el espacio', { color:'#9db8d2', size:9 });
+  }
+}
+
+/* ================= 9. LA HIDRA DEL CAOS (cap. 7) ================= */
+function buildHidra(){
+  if (!S.layers.hidra) return;
+  for (let h = 0; h < 6; h++){
+    const az = h / 6 * TAU + .3;
+    const pts = [];
+    for (let i = 0; i <= 26; i++){
+      const s = i / 26;
+      const r = RP * (.82 + .34 * s);
+      const wob = Math.sin(S.t * 1.6 + s * 7 + h * 2.1) * 9 * s;
+      const y = 2 + s * 30 + Math.sin(S.t * 1.1 + h) * 4 * s + wob * .35;
+      const a = az + Math.sin(S.t * .9 + s * 5 + h) * .16 * s;
+      pts.push([r * Math.cos(a), y, r * Math.sin(a)]);
+    }
+    addLine(pts, { color:'#7ee0a0', alpha:.42, lw:1.4, layer: 3 });
+    const head = pts[pts.length - 1];
+    addHalo(head, 5.5, { color:'#7ee0a0', alpha:.4, layer: 4 });
+    addPoint(head, { color:'#d8ffe6', size: 2.2, alpha:.9, layer: 5 });
+  }
+  if (S.layers.etiq){
+    const az = 0.3, r = RP * 1.16;
+    addLabel([r*Math.cos(az), 32, r*Math.sin(az)], 'LA HIDRA DEL CAOS', { color:'#7ee0a0', dx: 20, dy: -26,
+      sub:'turbulencia en la frontera (cap. 7)' });
+  }
+}
+
+/* ================= 10. EJES DE REFERENCIA ================= */
+function buildEjes(){
+  if (!S.layers.ejes) return;
+  const L = 130;
+  addLine([[0,0,0],[L,0,0]], { color:'#ff6286', alpha:.6, lw:1.2, layer: 2 });
+  addLine([[0,0,0],[0,L,0]], { color:'#6fdc8c', alpha:.6, lw:1.2, layer: 2 });
+  addLine([[0,0,0],[0,0,L]], { color:'#41d3e2', alpha:.6, lw:1.2, layer: 2 });
+  if (S.layers.etiq){
+    addLabel([L,0,0], 'X', { color:'#ff6286', dx: 8, dy: 8 });
+    addLabel([0,L,0], 'Y (altura sobre el plano)', { color:'#6fdc8c', dx: 10, dy: -10 });
+    addLabel([0,0,L], 'Z', { color:'#41d3e2', dx: 8, dy: 8 });
+  }
+}
+
+/* ================= 11. CICLO DE LOS SOLES / COLISIÓN (cap. 6) ================= */
+const CICLO_SOLES = [
+  { r: 30, y: 24, a: 0.4, col:'#ffd27a', n:'1º Sol' },
+  { r: 48, y: 36, a: 2.1, col:'#ff9d3c', n:'2º Sol' },
+  { r: 66, y: 28, a: 3.7, col:'#ff7a5c', n:'3º Sol' },
+  { r: 84, y: 44, a: 5.2, col:'#c9a6ff', n:'4º Sol' }
+];
+const FUSION = [0, 34, 0];
+const CAPTION = [
+  ['Cuatro soles anteriores', 'Cada uno rigió una edad del mundo antes del nuestro'],
+  ['Convergencia', 'Los soles se aproximan: el campo se reorganiza'],
+  ['La colisión de los soles', 'Impacto y fusión: el orden celeste cambia (cap. 6)'],
+  ['Cataclismo', 'Diluvios y glaciaciones · migración de los pueblos megalíticos'],
+  ['El Quinto Sol', 'La edad actual: un único nexo sobre el plano infinito']
+];
+function buildCiclo(sunPos){
+  const C = S.ciclo, t = C.t;
+  let stage = t < .18 ? 0 : t < .50 ? 1 : t < .60 ? 2 : t < .76 ? 3 : 4;
+  // posiciones de los cuatro soles
+  const conv = stage === 0 ? 0 : stage === 1 ? smooth((t - .18) / .32) : 1;
+  const vis = stage >= 4 ? 0 : 1;
+  if (vis){
+    for (let i = 0; i < CICLO_SOLES.length; i++){
+      const s = CICLO_SOLES[i];
+      const app = stage === 0 ? clamp((t - i * .035) / .07, 0, 1) : 1;
+      if (app <= 0) continue;
+      const p0 = [Math.cos(s.a + S.t*.02) * s.r, s.y, Math.sin(s.a + S.t*.02) * s.r];
+      const p = [lerp(p0[0], FUSION[0], conv), lerp(p0[1], FUSION[1], conv), lerp(p0[2], FUSION[2], conv)];
+      const R = SUN_R * .82 * app * (1 - conv * .35);
+      buildSol(p, Math.max(.6, R), { silent:true, emision:true, spin:.4 + i*.1 });
+      if (conv > .02 && conv < 1) addLine([p0, p], { color: s.col, alpha:.22, lw:1, dash:[4,6], layer: 2 });
+      if (S.layers.etiq && app > .8 && conv < .5)
+        addLabel(p, s.n, { color: s.col, dx: 18, dy: -20 });
+    }
+    if (stage === 2 || stage === 3){
+      const tt = stage === 2 ? (t - .50) / .10 : 1;
+      addHalo(FUSION, 26 + 46 * smooth(clamp(tt,0,1)), { color:'#fff2c8', alpha: .85 * (1 - clamp(tt*.72,0,1)), layer: 8 });
+      addPoint(FUSION, { color:'#ffffff', size: 6, alpha: 1, layer: 9 });
+    }
+  }
+  // ondas de choque sobre el plano
+  if (stage >= 2){
+    const e = (t - .52);
+    for (let k = 0; k < 3; k++){
+      const rr = (e - k * .035) * 320;
+      if (rr > 2 && rr < RP * 2.1){
+        const a = clamp(1 - rr / (RP * 2.1), 0, 1) * .8;
+        addLine(ringXZ([0,0,0], rr, 90, .3 + k*.1), { color: k === 1 ? '#9fd8ff' : '#ffd27a', alpha: a, lw: 2 - k*.4, layer: 3 });
+      }
+    }
+    if (stage === 3){
+      // lámina de agua / hielo del cataclismo
+      const a = .12 * (1 - (t - .76) / .24);
+      addPoly(annulus([0,0,0], 0, RP * 1.1, 60, .5), { fill: rgba('#7fc7ff', Math.max(0, a)), layer: 1 });
+    }
+  }
+  // destello
+  if (stage === 2){ C.flash = Math.max(C.flash, (1 - Math.abs((t - .55) / .05)) * .55); }
+  return stage;
+}
+/* =====================================================================
+   MAPA DE SUBIRATS · «Terra Firma y los límites oceánicos» y
+   «Las costas de Terra Firma» (cap. 17) · digitalizado de las láminas
+   del libro. Coordenadas de mapa (u,v) ∈ [-1,1]²; el polo (punto de
+   convergencia de los meridianos, lámina 4) va al centro del plano.
+   ===================================================================== */
+const TERRA_OVAL = [[0.002, -0.745], [0.44, -0.618], [0.728, -0.364], [0.867, -0.045], [0.901, 0.273], [0.798, 0.545], [0.556, 0.773], [0.21, 0.891], [-0.125, 0.891], [-0.482, 0.773], [-0.735, 0.545], [-0.873, 0.273], [-0.896, -0.045], [-0.804, -0.364], [-0.597, -0.591], [-0.309, -0.709]];
+const TERRA_POLE = [0.153, -0.091];
+const TERRA_LANDS = {"norte_butterfly": [[-0.056, -0.614], [0.036, -0.577], [0.071, -0.586], [0.105, -0.577], [0.186, -0.614], [0.163, -0.536], [0.082, -0.505], [0.002, -0.509], [-0.044, -0.545]], "cadena_archipielago": [[0.105, -0.491], [0.244, -0.477], [0.336, -0.445], [0.359, -0.382], [0.267, -0.364], [0.175, -0.4], [0.117, -0.436]], "masa_central": [[-0.143, -0.288], [-0.011, -0.334], [0.088, -0.367], [0.154, -0.341], [0.22, -0.288], [0.319, -0.262], [0.418, -0.209], [0.451, -0.13], [0.418, -0.077], [0.451, -0.024], [0.385, 0.029], [0.253, 0.082], [0.088, 0.108], [-0.077, 0.095], [-0.209, 0.108], [-0.291, 0.055], [-0.341, -0.024], [-0.308, -0.103], [-0.242, -0.182]], "isla_1": [[-0.151, -0.056], [-0.069, -0.076], [-0.052, 0.003], [-0.135, 0.023]], "isla_2": [[0.036, -0.045], [0.128, -0.064], [0.14, 0.018], [0.048, 0.045]], "isla_3": [[0.21, -0.091], [0.29, -0.109], [0.302, -0.036], [0.221, -0.018]], "sur_oeste_alargada": [[-0.844, 0.168], [-0.753, 0.125], [-0.56, 0.105], [-0.4, 0.135], [-0.36, 0.2], [-0.43, 0.26], [-0.5, 0.33], [-0.6, 0.345], [-0.68, 0.27], [-0.76, 0.205]], "sur_este_redondeada": [[0.152, 0.0], [0.325, -0.018], [0.486, 0.018], [0.59, 0.091], [0.613, 0.2], [0.556, 0.291], [0.44, 0.327], [0.29, 0.309], [0.186, 0.255], [0.128, 0.164], [0.105, 0.073]], "isleta_este": [[0.59, 0.118], [0.659, 0.1], [0.682, 0.155], [0.613, 0.173]], "isla_hielo": [[-0.286, -0.045], [-0.194, -0.064], [-0.171, 0.0], [-0.252, 0.027]]};
+const TERRA_DESERTS = [
+  [[0.20,-0.15],[0.34,-0.12],[0.36,-0.02],[0.24,0.00]],
+  [[0.30,0.10],[0.46,0.12],[0.44,0.26],[0.30,0.24]],
+  [[-0.55,0.16],[-0.45,0.15],[-0.47,0.26],[-0.56,0.26]]
+];
+const TF_A = 88, TF_B = 96;   // unidades del plano por unidad de mapa
+function map2plane(u, v){ return [ (u - TERRA_POLE[0]) * TF_A, 0, (v - TERRA_POLE[1]) * TF_B ]; }
+function plane2map(x, z){ return [ x / TF_A + TERRA_POLE[0], z / TF_B + TERRA_POLE[1] ]; }
+/* lat/lon de la cuadrícula estándar (lámina 4): lon = u·180, lat = −v·90 */
+function lonlat(lon, lat, y){
+  const p = map2plane(lon / 180, -lat / 90);
+  return [p[0], y == null ? .5 : y, p[2]];
+}
+function planeToLonLat(x, z){ const m = plane2map(x, z); return [m[0]*180, -m[1]*90]; }
+const OVALP = TERRA_OVAL.map(p => map2plane(p[0], p[1]));
+function pipOval(x, z){
+  let ins = false;
+  for (let i = 0, j = OVALP.length-1; i < OVALP.length; j = i++){
+    const a = OVALP[j], b = OVALP[i];
+    if ((a[2] > z) !== (b[2] > z)){
+      const t = (z - a[2]) / (b[2] - a[2]);
+      if (a[0] + (b[0]-a[0])*t > x) ins = !ins;
+    }
+  }
+  return ins;
+}
+/* distancia desde el polo (origen) hasta el límite oceánico en la dirección th */
+function ovalRay(th){
+  const dx = Math.cos(th), dz = Math.sin(th);
+  let t = 0;
+  while (t < 140 && pipOval(dx*t, dz*t)) t += 1.5;
+  return Math.max(20, t);
+}
+
+/* ------------------------- 1. TERRA FIRMA SOBRE EL PLANO ------------------------- */
+const OVC = (function(){
+  let x = 0, z = 0;
+  for (const p of OVALP){ x += p[0]; z += p[2]; }
+  return [x/OVALP.length, 0, z/OVALP.length];
+})();
+function ovalScaled(k, y){
+  return OVALP.map(p => [OVC[0]+(p[0]-OVC[0])*k, y == null ? .4 : y, OVC[2]+(p[2]-OVC[2])*k]);
+}
+function buildMapa(){
+  if (!S.layers.mapa) return;
+  // plataforma continental teal + océano de Terra Firma
+  addPoly(ovalScaled(1.10, .35), { fill:'rgba(52,186,196,.34)', layer:.55 });
+  addPoly(ovalScaled(1.0, .45), { fill:'rgba(28,78,148,.96)', layer:.6 });
+  addLine(ovalScaled(1.0, .5), { color:'rgba(18,38,30,.95)', lw:2, layer:.62 });
+  addLine(ovalScaled(1.10, .5), { color:'rgba(84,214,224,.6)', lw:1.5, layer:.62 });
+  // continentes (cap. 17): verde de vegetación, desiertos ocres, hielo blanco
+  for (const name in TERRA_LANDS){
+    const poly = TERRA_LANDS[name].map(p => { const q = map2plane(p[0], p[1]); return [q[0], .6, q[2]]; });
+    const ice = name === 'isla_hielo';
+    addPoly(poly, { fill: ice ? 'rgba(242,249,253,.96)' : 'rgba(104,168,96,.97)',
+      stroke: ice ? 'rgba(160,190,205,.8)' : 'rgba(22,42,32,.95)', lw:1.6, layer:.63 });
+  }
+  for (const d of TERRA_DESERTS){
+    addPoly(d.map(p => { const q = map2plane(p[0], p[1]); return [q[0], .7, q[2]]; }),
+      { fill:'rgba(216,164,92,.95)', layer:.64 });
+  }
+  // cuadrícula recta de lat/lon (longitudes estándar de GPS, lámina 4)
+  for (let lon = -150; lon <= 150; lon += 30){
+    const u = lon/180;
+    const a = map2plane(u, -0.80), b = map2plane(u, 0.95);
+    addLine([[a[0], .8, a[2]], [b[0], .8, b[2]]], { color: lon === 0 ? '#e8d07a' : '#5f87a8',
+      alpha: lon === 0 ? .5 : .28, lw:1, layer:1.2 });
+    addText([b[0], 1.2, b[2]], lon + '°', { color:'#82a8c4', size:9, alpha:.85 });
+  }
+  for (let lat = 60; lat >= -60; lat -= 15){
+    const v = -lat/90;
+    const a = map2plane(-0.95, v), b = map2plane(0.95, v);
+    addLine([[a[0], .8, a[2]], [b[0], .8, b[2]]], { color: lat === 0 ? '#e8d07a' : '#5f87a8',
+      alpha: lat === 0 ? .5 : .28, lw:1, layer:1.2 });
+    addText([a[0]-4, 1.2, a[2]], (lat > 0 ? lat+'°N' : lat === 0 ? '0°' : (-lat)+'°S'),
+      { color:'#82a8c4', size:9, alpha:.85, align:'right' });
+  }
+  // longitudes al momento del equinoccio (lámina 4): meridianos curvos en espiral
+  if (S.layers.equin){
+    for (let lon0 = -180; lon0 < 180; lon0 += 15){
+      const pts = [];
+      for (let i = 0; i <= 26; i++){
+        const s = i/26, ang = lon0*D2R + 0.85*s*s, rr = s*ovalRay(ang)*1.02;
+        pts.push([Math.cos(ang)*rr, .9, Math.sin(ang)*rr]);
+      }
+      addLine(pts, { color:'#c9b6ff', alpha:.30, lw:1, layer:1.3 });
+    }
+    for (let k = 1; k <= 6; k++){
+      addLine(ringXZ([0,0,k*9], k*13.5, 56, .9), { color:'#c9b6ff', alpha:.26, lw:1, dash:[4,5], layer:1.3 });
+    }
+  }
+  // más allá de los límites oceánicos: el plano congelado infinito
+  addLine(ovalScaled(1.35, .4), { color:'#bfe3ff', alpha:.28, lw:1, dash:[3,7], layer:1.2 });
+  addLine(ovalScaled(1.70, .4), { color:'#bfe3ff', alpha:.16, lw:1, dash:[3,9], layer:1.2 });
+  if (S.layers.etiq){
+    addText([OVC[0], 2.0, OVC[2]], 'TERRA FIRMA', { color:'#eaf6ff', size:12, bold:true, alpha:.95 });
+    const sb = map2plane(0.10, 0.93);
+    addText([sb[0], 1.6, sb[2]], 'LÍMITES OCEÁNICOS · Sur (+)', { color:'#ff86a4', size:10, bold:true });
+    addText([0, 2.2, 0], 'NORTE · carga (−)', { color:'#67dcea', size:10, bold:true });
+    const sf = map2plane(0.42, 0.62);
+    addText([sf[0], 1.2, sf[2]], 'Subirats · cap. 17', { color:'#9db8d2', size:8.5, alpha:.7 });
+    const ff = map2plane(-0.85, -0.75);
+    addText([ff[0], 1.4, ff[2]], 'plano congelado infinito · sistemas similares más allá', { color:'#bfe3ff', size:9.5 });
+  }
+}
+
+/* ---------------- 2. sistemas continentales similares, fuera del óvalo ---------------- */
+const SISTEMAS = [ { az: 0.95, f: 1.85, s: 0.9, nom:'II' },
+                   { az: 2.70, f: 2.30, s: 0.8, nom:'III' },
+                   { az: 4.45, f: 2.85, s: 1.0, nom:'IV' } ];
+function blobPts(cx, cz, r0, seed, n){
+  const pts = [];
+  const bx = cx + Math.cos(seed*2.4)*r0*1.7, bz = cz + Math.sin(seed*1.7)*r0*1.7;
+  for (let i = 0; i < n; i++){
+    const a = i/n*TAU;
+    const rr = r0*(1 + .38*Math.sin(a*3 + seed*1.3) + .22*Math.sin(a*5 + seed*2.1));
+    pts.push([bx + rr*Math.cos(a), .6, bz + rr*Math.sin(a)]);
+  }
+  return pts;
+}
+function buildSistemas(){
+  if (!S.layers.sistemas) return;
+  for (let si = 0; si < SISTEMAS.length; si++){
+    const sy = SISTEMAS[si];
+    const R = ovalRay(sy.az) * sy.f;
+    const cx = Math.cos(sy.az)*R, cz = Math.sin(sy.az)*R;
+    [14, 24, 36].forEach((rr, i) =>
+      addLine(ringXZ([cx,0,cz], rr*sy.s, 56, .55), { color:'#8fc4e8', alpha:.30 - i*.07, lw:1, layer:1.2 }));
+    for (let b = 0; b < 4; b++){
+      addPoly(blobPts(cx, cz, (6 + (b*5)%8)*sy.s, si*7 + b + 1, 12),
+        { fill:'rgba(190,225,245,.14)', stroke:'rgba(190,225,245,.55)', lw:1.2, layer:.6 });
+    }
+    const hp = [cx, 20*sy.s, cz];
+    addHalo(hp, 9*sy.s, { color:'#bfe3ff', alpha:.15, layer:5 });
+    addLine(ringXZ(hp, 3.6*sy.s, 26, hp[1]), { color:'#bfe3ff', alpha:.42, lw:1, layer:5 });
+    addLine([hp, [cx, .5, cz]], { color:'#bfe3ff', alpha:.20, lw:1, dash:[3,5], layer:3 });
+    addLine([[Math.cos(sy.az)*ovalRay(sy.az)*1.1, .5, Math.sin(sy.az)*ovalRay(sy.az)*1.1], [cx, .5, cz]],
+      { color:'#9fc4e8', alpha:.18, lw:1, dash:[2,8], layer:1.2 });
+    addText([cx, 25*sy.s, cz], 'SISTEMA ' + sy.nom, { color:'#9fc4e8', size:9, bold:true, alpha:.85 });
+    if (S.layers.etiq && si === 0)
+      addLabel([cx, 4, cz], 'SISTEMA CONTINENTAL ' + sy.nom, { color:'#bfe3ff', dx:24, dy:-28,
+        sub:'congelado · similar al nuestro, con su propio nexo' });
+  }
+}
+
+/* ---------------- 3. anomalía, megalitos y ruta del Cutty Sark (en el mapa real) ---------------- */
+const ANOM = { u: -0.05, v: 0.45, r: 12 };
+const MEGALITOS = [
+  { n:'Giza',         u: 0.30, v: -0.10 },
+  { n:'Tiwanaku',     u: -0.55, v: 0.22 },
+  { n:'Stonehenge',   u: 0.00, v: -0.30 },
+  { n:'Chichén Itzá', u: 0.20, v: -0.42 }
+];
+const RUTA_CUTTY = [ [-0.28,-0.08],[-0.38,0.05],[-0.50,0.10],[-0.62,0.30],[-0.45,0.42],[-0.15,0.45],[0.10,0.42],[0.30,0.40] ];
+function buildAnomalia(){
+  if (!S.layers.mapa) return;
+  const q = map2plane(ANOM.u, ANOM.v);
+  const A = [q[0], 0, q[2]];
+  for (let k = 0; k < 4; k++){
+    const pts = [];
+    for (let i = 0; i <= 22; i++){
+      const s = i/22, a = s*TAU*1.4 + k*1.7;
+      const rr = ANOM.r*(.35 + .65*s) * (1 + .25*Math.sin(a*2 + S.t*1.4 + k));
+      pts.push([A[0]+rr*Math.cos(a), .9 + k*.25, A[2]+rr*Math.sin(a)]);
+    }
+    addLine(pts, { color:'#c79bff', alpha:.40 - k*.06, lw:1.1, layer:2 });
+  }
+  addHalo(A, ANOM.r*1.5, { color:'#a68bff', alpha:.14, layer:2 });
+  if (S.layers.etiq)
+    addText([A[0], 2.2, A[2]], 'anomalía magnética · efecto Zeeman', { color:'#c79bff', size:9.5, bold:true });
+}
+function buildMegalitosRuta(){
+  if (!S.layers.mapa) return;
+  const pts = RUTA_CUTTY.map(uv => { const q = map2plane(uv[0], uv[1]); return [q[0], 1.0, q[2]]; });
+  addLine(pts, { color:'#7fd4ff', alpha:.55, lw:1.3, dash:[7,5], layer:2 });
+  const ship = pts[Math.floor(pts.length*.62)];
+  addPoint(ship, { color:'#e6f7ff', size:2.6, alpha:1, layer:6 });
+  if (S.layers.etiq) addText([ship[0], 2.4, ship[2]], 'ruta del Cutty Sark (caps. 4-5)', { color:'#7fd4ff', size:9.5 });
+  for (const m of MEGALITOS){
+    const q = map2plane(m.u, m.v);
+    addPoly([[q[0]-1.5, .9, q[2]+1.1], [q[0]+1.5, .9, q[2]+1.1], [q[0], .9, q[2]-1.7]],
+      { fill:'#ffe9b0', alpha:.9, layer:6 });
+    if (S.layers.etiq) addText([q[0], 2.6, q[2]], m.n, { color:'#ffe9b0', size:8.5 });
+  }
+}
+
+/* ---------------- 4. observador ---------------- */
+function obsPos(){ return lonlat(S.obs.lon, S.obs.lat, 0); }
+function esDeDia(O, sun){ return Math.hypot(O[0]-sun[0], O[2]-sun[2]) < S.cone; }
+function fmtLatLon(lat, lon){
+  return Math.abs(lat).toFixed(1) + '°' + (lat >= 0 ? 'N' : 'S') + ' ' +
+         Math.abs(lon).toFixed(1) + '°' + (lon >= 0 ? 'E' : 'O');
+}
+function azAlt(O, Spos){
+  const v = [Spos[0]-O[0], Spos[1]-O[1], Spos[2]-O[2]];
+  const d = Math.hypot(v[0], v[1], v[2]) || 1;
+  const alt = Math.asin(clamp(v[1]/d, -1, 1)) / D2R;
+  const nl = Math.hypot(O[0], O[2]) || 1;
+  const n = [-O[0]/nl, 0, -O[2]/nl];
+  const e = [-n[2], 0, n[0]];
+  const vh = [v[0], 0, v[2]];
+  let az = Math.atan2(vh[0]*e[0] + vh[2]*e[2], vh[0]*n[0] + vh[2]*n[2]) / D2R;
+  if (az < 0) az += 360;
+  return { az, alt, dist: d };
+}
+function buildObservador(sun){
+  if (!S.layers.obs) return;
+  const O = obsPos();
+  const u = S.obs.lon/180, v = -S.obs.lat/90;
+  const a1 = map2plane(u, -0.80), b1 = map2plane(u, 0.95);
+  const a2 = map2plane(-0.95, v), b2 = map2plane(0.95, v);
+  addLine([[a1[0], .8, a1[2]], [b1[0], .8, b1[2]]], { color:'#6fdc8c', alpha:.45, lw:1.2, dash:[5,4], layer:1.4 });
+  addLine([[a2[0], .8, a2[2]], [b2[0], .8, b2[2]]], { color:'#6fdc8c', alpha:.40, lw:1.2, dash:[5,4], layer:1.4 });
+  addLine(ringXZ(O, 2.6, 26, .9), { color:'#6fdc8c', alpha:.95, lw:1.7, layer:6 });
+  addPoint([O[0], 1.4, O[2]], { color:'#e6fff0', size:2.8, alpha:1, layer:6 });
+  addHalo(O, 5.5, { color:'#6fdc8c', alpha:.35, layer:6 });
+  addLine([O, [sun[0], .7, sun[2]]], { color:'#f4b740', alpha:.5, lw:1.2, dash:[6,5], layer:2 });
+  addLine([O, sun], { color:'#ffd27a', alpha:.6, lw:1.3, layer:3 });
+  arrow([O, sun], .55, 2.4, '#ffd27a', .85, 4);
+  const AA = azAlt(O, sun);
+  if (S.layers.etiq)
+    addLabel([O[0], 2.6, O[2]], 'OBSERVADOR', { color:'#6fdc8c', dx:-46, dy:-32,
+      sub: fmtLatLon(S.obs.lat, S.obs.lon) + ' · az ' + AA.az.toFixed(0) + '° · alt ' + AA.alt.toFixed(0) + '°' });
+}
+/* =====================================================================
+   p3c · ILUMINACIÓN NO HOMOGÉNEA · CARTA RECTANGULAR DEL MAPA ·
+   MANIFESTACIÓN PERCIBIDA · ANOMALÍA MAGNÉTICA / ZEEman / MICROONDAS /
+   RUTA DEL CUTTY SARK / MEGALITOS
+   (las funciones buildCono y drawSkyInset redefinen a las de p3/p3b:
+   en un mismo ámbito, la última declaración es la que rige)
+   ===================================================================== */
+
+/* ------- estado y ayudas de la iluminación no homogénea ------- */
+const DB = { cx:0, cz:0, phaseDir:0, anomDir:0, t:0, pol:0, rC:42 };
+function angDiff(a, b){ let d = a - b; while (d > Math.PI) d -= TAU; while (d < -Math.PI) d += TAU; return d; }
+function dayBound(th){
+  let r = 1;
+  r += 0.17 * DB.pol * Math.cos(th - DB.phaseDir);
+  r += 0.10 * Math.cos(2*th + DB.t*0.21);
+  r += 0.06 * Math.cos(3*th - DB.t*0.13);
+  r += 0.045 * Math.sin(DB.t*1.9);
+  const d = angDiff(th, DB.anomDir);
+  r -= 0.24 * Math.exp(-(d*d) / (2*0.34*0.34));
+  return Math.max(0.32, r);
+}
+function blobPoly(cx, cz, rC, scale, seg){
+  const pts = [];
+  for (let i = 0; i <= seg; i++){
+    const th = i/seg*TAU, rr = rC*scale*dayBound(th);
+    pts.push([cx + rr*Math.cos(th), .18, cz + rr*Math.sin(th)]);
+  }
+  return pts;
+}
+function anomProx(O){
+  const q = map2plane(ANOM.u, ANOM.v);
+  const d = Math.hypot(O[0]-q[0], O[2]-q[2]);
+  return clamp(1 - d / (ANOM.r*2.6), 0, 1);
+}
+function manifestacion(O, sun){
+  const AA = azAlt(O, sun);
+  const interf = clamp(anomProx(O) + (AA.alt < 10 ? .30 : 0) + .12*Math.sin(DB.t*2.3), 0, 1);
+  const size  = clamp(3.2 + 240/AA.dist, 3.4, 11.5);
+  const tcol  = clamp(AA.alt/55, 0, 1);
+  const col   = [255, Math.round(lerp(122, 246, tcol)), Math.round(lerp(74, 224, tcol))];
+  return { AA, interf, size, col,
+    squash: 1 - .45*Math.exp(-Math.max(0, AA.alt)/9),
+    pillar: AA.alt < 12 && AA.alt > -4,
+    ghost:  interf > .55,
+    fringe: 2 + Math.round(interf*4) };
+}
+
+/* =====================================================================
+   CONO + MANCHA DE DÍA NO HOMOGÉNEA (redefine buildCono)
+   ===================================================================== */
+function buildCono(pos, rC){
+  if (!S.layers.cono || !S.emision) return;
+  const c = [pos[0], 0, pos[2]];
+  DB.cx = c[0]; DB.cz = c[2]; DB.rC = rC; DB.t = S.t; DB.pol = S.pol;
+  DB.phaseDir = Math.atan2(-c[2], -c[0]);                       // hacia el Norte (centro)
+  const Aq = map2plane(ANOM.u, ANOM.v);
+  DB.anomDir = Math.atan2(Aq[2]-c[2], Aq[0]-c[0]);
+  const n = 30, NB = 5;
+  /* superficie del cono siguiendo el borde irregular */
+  for (let i = 0; i < NB; i++){
+    const f0 = i/NB, f1 = (i+1)/NB;
+    for (let k = 0; k < n; k++){
+      const t0 = k/n*TAU, t1 = (k+1)/n*TAU;
+      const b0 = rC*dayBound(t0), b1 = rC*dayBound(t1);
+      const P = (f, th, b) => [ lerp(pos[0], c[0]+b*Math.cos(th), f), lerp(pos[1], 0, f), lerp(pos[2], c[2]+b*Math.sin(th), f) ];
+      addPoly([P(f0,t0,b0), P(f0,t1,b1), P(f1,t1,b1), P(f1,t0,b0)],
+        { fill: rgba('#ffcf6a', .028 + .05*f1 + .02*Math.cos(t0-DB.phaseDir)), layer: 3 });
+    }
+  }
+  /* aristas divergentes de longitud desigual */
+  for (let k = 0; k < 14; k++){
+    const th = k/14*TAU, b = rC*dayBound(th);
+    addLine([pos, [c[0]+b*Math.cos(th), 0, c[2]+b*Math.sin(th)]], { color:'#ffd98a', alpha:.20, lw:1, layer: 3 });
+  }
+  /* bandas de intensidad: forma + brillo irregulares */
+  const NB2 = 12, seg = 64;
+  for (let i = NB2-1; i >= 0; i--){
+    const s0 = i/NB2, s1 = (i+1)/NB2;
+    const pts = [];
+    for (let k = 0; k <= seg; k++){
+      const th = k/seg*TAU;
+      pts.push([c[0]+rC*s1*dayBound(th)*Math.cos(th), .2, c[2]+rC*s1*dayBound(th)*Math.sin(th)]);
+    }
+    for (let k = seg; k >= 0; k--){
+      const th = k/seg*TAU;
+      pts.push([c[0]+rC*s0*dayBound(th)*Math.cos(th), .2, c[2]+rC*s0*dayBound(th)*Math.sin(th)]);
+    }
+    const a = .26*Math.pow(1-s0, 1.5) + .012;
+    addPoly(pts, { fill: rgba('#ffd79a', a), layer: 1 });
+  }
+  /* cuñas de brillo según la fase (más luz hacia N o hacia S) */
+  for (let k = 0; k < 10; k++){
+    const th0 = k/10*TAU, th1 = (k+1)/10*TAU;
+    const w = Math.max(0, Math.cos((th0+th1)/2 - DB.phaseDir));
+    if (w < .15) continue;
+    const pts = [[c[0], .22, c[2]]];
+    for (let i = 0; i <= 8; i++){
+      const th = lerp(th0, th1, i/8), rr = rC*dayBound(th);
+      pts.push([c[0]+rr*Math.cos(th), .22, c[2]+rr*Math.sin(th)]);
+    }
+    addPoly(pts, { fill: rgba('#fff0c4', .05*w*Math.abs(S.pol) + .02*w), layer: 1 });
+  }
+  /* borde irregular + franjas espectrales (arco iris dieléctrico) */
+  addLine(blobPoly(c[0], c[2], rC, 1, 90), { color:'#f4b740', alpha:.62, lw:1.4, layer: 3 });
+  const SPEC = ['#ff5f6d','#ff9d3c','#f4e04d','#5fe08a','#41d3e2','#5b8cff','#a68bff'];
+  for (let i = 0; i < SPEC.length; i++){
+    addLine(blobPoly(c[0], c[2], rC, 1.03 + i*.016, 72), { color: SPEC[i], alpha:.20, lw:1, layer: 3 });
+  }
+  /* radiación de microondas: subproducto, anillo exterior */
+  addLine(blobPoly(c[0], c[2], rC, 1.34, 60), { color:'#8fa9c4', alpha:.28, lw:1, dash:[4,6], layer: 2 });
+  if (S.layers.etiq){
+    addText([c[0]+rC*.9, 1.6, c[2]+rC*.9], 'luz NO homogénea: fase, permitividad, anomalía y Zeeman', { color:'#ffd27a', size:9.5 });
+    addText([c[0]+rC*1.36*Math.cos(DB.anomDir), 1.4, c[2]+rC*1.36*Math.sin(DB.anomDir)], 'microondas (subproducto)', { color:'#8fa9c4', size:9 });
+  }
+}
+
+/* =====================================================================
+   ANOMALÍA MAGNÉTICA · MEGALITOS · RUTA DEL CUTTY SARK
+   ===================================================================== */
+/* estado de la carta: plegable y arrastrable por su barra de título */
+const MS = { x: 14, y: 56, w: 380, h: 232, open: true };
+let msTogglePending = false, chartDrag = null;
+function msHit(px, py){
+  if (px >= MS.x + MS.w - 16 && px <= MS.x + MS.w && py >= MS.y && py <= MS.y + 14) return 'toggle';
+  if (px >= MS.x && px <= MS.x + MS.w && py >= MS.y && py <= MS.y + 14) return 'header';
+  return null;
+}
+function drawMapSheet(D){
+  if (!S.layers.mapa) return;
+  const x = MS.x, y = MS.y, w = MS.w;
+  const h = MS.open ? MS.h : 14;
+  const pad = 30;
+  const top = y + 30, mapH = MS.h - 64, bot = top + mapH;
+  const iw = w - pad - 10;
+  const X = u => x + pad + (u + 1.08)/2.16 * iw;
+  const Y = v => top + (v + 1.02)/2.04 * mapH;
+  const P = uv => [X(uv[0]), Y(uv[1])];
+  ctx.globalAlpha = 1;
+  // barra de título (zona de arrastre) + botón plegar
+  ctx.fillStyle = 'rgba(10,16,24,.94)';
+  ctx.fillRect(x, y, w, 14);
+  ctx.beginPath();
+  ctx.moveTo(x+.5, y+.5); ctx.lineTo(x+w-.5, y+.5); ctx.lineTo(x+w-.5, y+h-.5); ctx.lineTo(x+.5, y+h-.5);
+  ctx.closePath();
+  ctx.strokeStyle = 'rgba(96,140,178,.7)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.font = '600 9px ui-monospace,Menlo,Consolas,monospace';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#dceaf6';
+  ctx.fillText('TERRA FIRMA · MAPA DE SUBIRATS (cap. 17)', x+6, y+8);
+  ctx.fillStyle = 'rgba(150,185,215,.9)';
+  ctx.fillText('···', x+w-26, y+8);
+  ctx.fillStyle = '#ffd27a';
+  ctx.fillText(MS.open ? '–' : '+', x+w-9, y+8);
+  ctx.textBaseline = 'alphabetic';
+  if (!MS.open) return;
+  // cuerpo semi-transparente
+  ctx.fillStyle = 'rgba(7,12,19,.86)';
+  ctx.fillRect(x, y+14, w, MS.h-14);
+  ctx.save ? ctx.save() : 0;
+  ctx.beginPath();
+  ctx.moveTo(x+1, top-1); ctx.lineTo(x+w-1, top-1); ctx.lineTo(x+w-1, bot+1); ctx.lineTo(x+1, bot+1);
+  ctx.closePath();
+  if (ctx.clip) ctx.clip();
+  ctx.fillStyle = '#0d1826'; ctx.fillRect(x+1, top-1, w-2, bot-top+2);
+  const pathOval = k => {
+    ctx.beginPath();
+    TERRA_OVAL.forEach((p, i) => {
+      const c = [0.0, 0.07];
+      const u = c[0] + (p[0]-c[0])*k, v = c[1] + (p[1]-c[1])*k;
+      i ? ctx.lineTo(X(u), Y(v)) : ctx.moveTo(X(u), Y(v));
+    });
+    ctx.closePath();
+  };
+  pathOval(1.10); ctx.fillStyle = 'rgba(52,186,196,.35)'; ctx.fill();
+  pathOval(1.0);  ctx.fillStyle = '#1c4e94'; ctx.fill();
+  ctx.strokeStyle = 'rgba(18,38,30,.95)'; ctx.lineWidth = 1.6; ctx.stroke();
+  pathOval(1.10); ctx.strokeStyle = 'rgba(84,214,224,.6)'; ctx.lineWidth = 1.2; ctx.stroke();
+  for (const name in TERRA_LANDS){
+    ctx.beginPath();
+    TERRA_LANDS[name].forEach((p, i) => { const q = P(p); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); });
+    ctx.closePath();
+    ctx.fillStyle = name === 'isla_hielo' ? '#f2f9fd' : '#68a860'; ctx.fill();
+    ctx.strokeStyle = 'rgba(22,42,32,.9)'; ctx.lineWidth = 1.2; ctx.stroke();
+  }
+  for (const dd of TERRA_DESERTS){
+    ctx.beginPath();
+    dd.forEach((p, i) => { const q = P(p); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); });
+    ctx.closePath();
+    ctx.fillStyle = '#d8a45c'; ctx.fill();
+  }
+  ctx.lineWidth = 1;
+  for (let lat = 60; lat >= -60; lat -= 15){
+    ctx.strokeStyle = lat === 0 ? 'rgba(232,208,122,.8)' : 'rgba(120,165,200,.35)';
+    ctx.beginPath(); ctx.moveTo(X(-0.95), Y(-lat/90)); ctx.lineTo(X(0.95), Y(-lat/90)); ctx.stroke();
+  }
+  for (let lon = -150; lon <= 150; lon += 30){
+    ctx.strokeStyle = lon === 0 ? 'rgba(232,208,122,.8)' : 'rgba(120,165,200,.30)';
+    ctx.beginPath(); ctx.moveTo(X(lon/180), Y(-0.80)); ctx.lineTo(X(lon/180), Y(0.95)); ctx.stroke();
+  }
+  if (S.layers.equin){
+    ctx.strokeStyle = 'rgba(201,182,255,.4)';
+    for (let lon0 = -180; lon0 < 180; lon0 += 20){
+      ctx.beginPath();
+      for (let i = 0; i <= 20; i++){
+        const s = i/20, ang = lon0*D2R + 0.85*s*s, rr = s*ovalRay(ang)*1.02;
+        const m = plane2map(Math.cos(ang)*rr, Math.sin(ang)*rr);
+        i ? ctx.lineTo(X(m[0]), Y(m[1])) : ctx.moveTo(X(m[0]), Y(m[1]));
+      }
+      ctx.stroke();
+    }
+  }
+  ctx.strokeStyle = 'rgba(199,155,255,.8)'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(X(ANOM.u), Y(ANOM.v), 8, 0, TAU); ctx.stroke();
+  ctx.strokeStyle = 'rgba(127,212,255,.85)'; ctx.setLineDash([5,4]);
+  ctx.beginPath();
+  RUTA_CUTTY.forEach((p, i) => { const q = P(p); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); });
+  ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = '#ffe9b0';
+  MEGALITOS.forEach(m => { const q = P([m.u, m.v]);
+    ctx.beginPath(); ctx.moveTo(q[0]-3, q[1]+2.4); ctx.lineTo(q[0]+3, q[1]+2.4); ctx.lineTo(q[0], q[1]-3); ctx.closePath(); ctx.fill(); });
+  ctx.beginPath();
+  for (let i = 0; i <= 72; i++){
+    const th = i/72*TAU, rr = S.cone*dayBound(th);
+    const m = plane2map(D.sun[0] + rr*Math.cos(th), D.sun[2] + rr*Math.sin(th));
+    i ? ctx.lineTo(X(m[0]), Y(m[1])) : ctx.moveTo(X(m[0]), Y(m[1]));
+  }
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(255,214,122,.30)'; ctx.fill();
+  ctx.strokeStyle = 'rgba(244,183,64,.95)'; ctx.lineWidth = 1.3; ctx.stroke();
+  const sm = plane2map(D.sun[0], D.sun[2]);
+  ctx.fillStyle = '#ffd27a'; ctx.beginPath(); ctx.arc(X(sm[0]), Y(sm[1]), 3, 0, TAU); ctx.fill();
+  const om = plane2map(S.obs.lon/180, -S.obs.lat/90);
+  ctx.strokeStyle = '#6fdc8c'; ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.moveTo(X(om[0])-5, Y(om[1])); ctx.lineTo(X(om[0])+5, Y(om[1]));
+  ctx.moveTo(X(om[0]), Y(om[1])-5); ctx.lineTo(X(om[0]), Y(om[1])+5); ctx.stroke();
+  ctx.restore ? ctx.restore() : 0;
+  ctx.font = '8.5px ui-monospace,Menlo,Consolas,monospace';
+  ctx.fillStyle = 'rgba(150,185,215,.95)'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (let lat = 60; lat >= -60; lat -= 15) ctx.fillText(lat > 0 ? lat+'°N' : lat === 0 ? '0°' : (-lat)+'°S', x+pad-6, Y(-lat/90));
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  for (let lon = -150; lon <= 150; lon += 60) ctx.fillText(lon+'°', X(lon/180), top-4);
+  ctx.textAlign = 'left';
+  ctx.font = '8.5px ui-monospace,Menlo,Consolas,monospace';
+  ctx.fillStyle = 'rgba(150,185,215,.9)';
+  ctx.fillText('lat/lon rectas (GPS al equinoccio) · + obs · ● nexo · ámbar = día', x+pad, y+MS.h-16);
+  ctx.fillStyle = 'rgba(191,227,255,.85)';
+  ctx.fillText('fuera de los límites oceánicos: plano congelado con sistemas similares', x+pad, y+MS.h-6);
+}
+
+/* =====================================================================
+   CIELO LOCAL con manifestación percibida (redefine drawSkyInset)
+   ===================================================================== */
+function drawSkyInset(D){
+  if (!S.layers.obs) return;
+  const O = obsPos();
+  const M = manifestacion(O, D.sun);
+  const R2 = 56, cx = W - 92, cy = H - 108;
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = 'rgba(6,10,16,.82)';
+  ctx.strokeStyle = 'rgba(70,105,140,.75)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(cx, cy, R2 + 18, 0, TAU); ctx.fill(); ctx.stroke();
+  for (const alt of [0, 30, 60]){
+    ctx.beginPath(); ctx.arc(cx, cy, R2*(1 - alt/90), 0, TAU);
+    ctx.setLineDash(alt === 0 ? [] : [3, 4]);
+    ctx.strokeStyle = alt === 0 ? 'rgba(150,198,230,.85)' : 'rgba(95,135,170,.45)';
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+  ctx.font = '600 9px ui-monospace,Menlo,Consolas,monospace';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  [['N',0],['E',90],['S',180],['O',270]].forEach(c => {
+    const th = (c[1] - 90)*D2R;
+    ctx.fillStyle = 'rgba(170,200,225,.9)';
+    ctx.fillText(c[0], cx + Math.cos(th)*(R2+10), cy + Math.sin(th)*(R2+10));
+  });
+  const plot = (az, alt) => {
+    const th = (az - 90)*D2R;
+    const rr = alt >= 0 ? R2*(1 - alt/90) : R2*(1 + Math.min(1, -alt/90)*.55);
+    return [cx + Math.cos(th)*rr, cy + Math.sin(th)*rr];
+  };
+  const rSun = D.rSun;
+  for (let k = 0; k <= 60; k++){
+    const a = TAU*k/60;
+    const AA = azAlt(O, [rSun*Math.cos(a), S.sunH, rSun*Math.sin(a)]);
+    if (AA.alt < -35) continue;
+    const p = plot(AA.az, AA.alt);
+    ctx.fillStyle = AA.alt >= 0 ? 'rgba(244,183,64,.5)' : 'rgba(255,98,134,.32)';
+    ctx.fillRect(p[0]-.9, p[1]-.9, 1.8, 1.8);
+  }
+  /* el holoprisma TAL COMO LO VE el observador */
+  const p = plot(M.AA.az, M.AA.alt);
+  const up = M.AA.alt >= 0;
+  const col = M.col;
+  const hexc = '#' + col.map(v => v.toString(16).padStart(2,'0')).join('');
+  if (up){
+    // pilar / columna solar
+    if (M.pillar){
+      const g = ctx.createLinearGradient(p[0], p[1]-26, p[0], p[1]+26);
+      g.addColorStop(0, rgba(hexc, 0)); g.addColorStop(.5, rgba(hexc, .5)); g.addColorStop(1, rgba(hexc, 0));
+      ctx.fillStyle = g; ctx.fillRect(p[0]-1.6, p[1]-26, 3.2, 52);
+    }
+    // disco percibido (aplastado cerca del horizonte)
+    const rx = M.size, ry = M.size*M.squash;
+    const g2 = ctx.createRadialGradient(p[0], p[1], 0, p[0], p[1], rx*2.1);
+    g2.addColorStop(0, rgba('#fff6e0', .95)); g2.addColorStop(.4, rgba(hexc, .55)); g2.addColorStop(1, rgba(hexc, 0));
+    ctx.fillStyle = g2;
+    ctx.beginPath();
+    if (ctx.ellipse) ctx.ellipse(p[0], p[1], rx*2.1, ry*2.1, 0, 0, TAU); else ctx.arc(p[0], p[1], rx*2.1, 0, TAU);
+    ctx.fill();
+    ctx.beginPath();
+    if (ctx.ellipse) ctx.ellipse(p[0], p[1], rx, ry, 0, 0, TAU); else ctx.arc(p[0], p[1], rx, 0, TAU);
+    ctx.fillStyle = rgba('#fff6e0', .95); ctx.fill();
+    // franjas prismáticas (interferencia / Zeeman)
+    const SPEC = ['#ff5f6d','#ff9d3c','#f4e04d','#5fe08a','#41d3e2','#5b8cff'];
+    for (let i = 0; i < M.fringe; i++){
+      ctx.beginPath();
+      const rr = rx + 2 + i*1.7;
+      if (ctx.ellipse) ctx.ellipse(p[0], p[1], rr, rr*M.squash, 0, 0, TAU); else ctx.arc(p[0], p[1], rr, 0, TAU);
+      ctx.strokeStyle = rgba(SPEC[i % 6], .5); ctx.lineWidth = 1; ctx.stroke();
+    }
+    // doble sol
+    if (M.ghost){
+      ctx.beginPath();
+      if (ctx.ellipse) ctx.ellipse(p[0]+rx*2.4, p[1]-rx*.5, rx*.8, ry*.8, 0, 0, TAU); else ctx.arc(p[0]+rx*2.4, p[1]-rx*.5, rx*.8, 0, TAU);
+      ctx.fillStyle = rgba(hexc, .45); ctx.fill();
+    }
+  } else {
+    ctx.beginPath(); ctx.arc(p[0], p[1], 4.2, 0, TAU);
+    ctx.fillStyle = 'rgba(255,98,134,.85)'; ctx.fill();
+    ctx.setLineDash([2,3]); ctx.beginPath(); ctx.arc(p[0], p[1], 7.5, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+  }
+  ctx.fillStyle = 'rgba(190,214,236,.95)';
+  ctx.font = '600 9.5px ui-monospace,Menlo,Consolas,monospace';
+  ctx.fillText('CIELO LOCAL · MANIFESTACIÓN DEL HOLOPRISMA', cx, cy - R2 - 11);
+  ctx.fillStyle = up ? 'rgba(255,210,122,.95)' : 'rgba(255,120,150,.95)';
+  ctx.fillText('az ' + M.AA.az.toFixed(0) + '° · alt ' + M.AA.alt.toFixed(0) + '° · ' +
+    (esDeDia(O, D.sun) ? 'DÍA' : 'NOCHE') + (up ? '' : ' (bajo el horizonte)'), cx, cy + R2 + 11);
+  ctx.fillStyle = 'rgba(150,185,215,.85)';
+  ctx.font = '8.5px ui-monospace,Menlo,Consolas,monospace';
+  ctx.fillText((M.ghost ? 'dobles soles · ' : '') + (M.pillar ? 'pilar solar · ' : '') +
+    'tamaño y color según distancia/altura · interferencia ' + (M.interf*100).toFixed(0) + '%', cx, cy + R2 + 22);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+/* =====================================================================
+   BUCLE PRINCIPAL · INTERFAZ · EXPORTADORES
+   ===================================================================== */
+const hud = document.getElementById('hud');
+const captionEl = document.getElementById('caption');
+const barCiclo = document.getElementById('barCiclo');
+let bgGrad = null, last = 0, fps = 60, fpsAcc = 0, fpsN = 0, hudT = 0;
+
+function makeBG(){
+  bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+  bgGrad.addColorStop(0, '#070c14');
+  bgGrad.addColorStop(.55, '#05080e');
+  bgGrad.addColorStop(1, '#03050a');
+}
+const SPECK = [];
+for (let i = 0; i < 70; i++) SPECK.push([ (i*0.6180339887)%1, ((i*0.381966)%1), .06 + ((i*13)%7)*.022 ]);
+
+/* ---------------- estado derivado ---------------- */
+function derived(){
+  const pol = S.pol;
+  const rSun = lerp(rTropMax(), rTropMin(), (pol + 1) / 2);
+  const ang = TAU * S.dayT;
+  const sun = [rSun * Math.cos(ang), S.sunH, rSun * Math.sin(ang)];
+  return { pol, rSun, ang, sun };
+}
+function estacionTxt(pol){
+  const a = Math.abs(pol);
+  if (pol > .93) return 'Solsticio boreal · fase positiva máxima';
+  if (pol < -.93) return 'Solsticio austral · fase negativa máxima';
+  if (a < .12) return 'Equinoccio · fase neutra';
+  if (pol > 0) return 'Fase positiva (centrípeta → Norte)';
+  return 'Fase negativa (centrífuga → Sur)';
+}
+function horaTxt(d){
+  const m = d * 24 * 60, h = Math.floor(m / 60) % 24, mm = Math.floor(m % 60);
+  return String(h).padStart(2,'0') + ':' + String(mm).padStart(2,'0');
+}
+
+/* ---------------- construcción del cuadro ---------------- */
+function buildScene(D){
+  const C = S.ciclo;
+  let stage = -1;
+  if (C.active) stage = buildCiclo(D.sun);
+  const showMainSun = !C.active || stage >= 4;
+
+  buildPlano([D.sun[0], 0, D.sun[2]], S.cone);
+  buildMapa();
+  buildAnomalia();
+  buildMegalitosRuta();
+  buildSistemas();
+  buildTray(D.rSun);
+  buildCampo(D.pol);
+  buildNexos();
+  buildHidra();
+  buildGiro();
+  buildEjes();
+  if (showMainSun){
+    buildCono(D.sun, S.cone);
+    if (S.layers.sol) buildSol(D.sun, SUN_R, {});
+    if (S.layers['switch']) buildSwitch(D.sun);
+    buildObservador(D.sun);
+    if (S.layers.tray){
+      // proyección vertical del nexo sobre el plano
+      addLine([[D.sun[0], 0, D.sun[2]], [D.sun[0], D.sun[1], D.sun[2]]],
+        { color:'#f4b740', alpha:.28, lw:1, dash:[3,4], layer: 2 });
+    }
+  }
+  // oscuridad del espacio: línea de horizonte simbólica
+  if (S.layers.plano && S.layers.etiq && S.layers.nexos){
+    addText([Math.cos(-2.6)*RP*1.15, 3, Math.sin(-2.6)*RP*1.15], 'el plano no está EN el espacio · la oscuridad no es un lugar: es ausencia de agrupamiento',
+      { color:'#7f93a8', size:9.5 });
+  }
+}
+
+function frame(now){
+  requestAnimationFrame(frame);
+  const dt = Math.min(.06, ((now - last) / 1000) || 0); last = now;
+  S.dt = dt;
+  fpsAcc += dt; fpsN++;
+  if (S.playing){
+    S.t += dt * S.speed;
+    S.dayT = (S.dayT + dt * S.speed * .05) % 1;
+    if (!S.lockFase) S.yearT = (S.yearT + dt * S.speed * .011) % 1;
+  }
+  if (!S.lockFase) S.pol = Math.cos(TAU * S.yearT);
+  if (S.autoRot && !dragging) cam.yaw += dt * .09;
+
+  // ciclo de los soles
+  const C = S.ciclo;
+  if (C.active && C.playing){
+    C.t += dt * S.speed * (1 / C.dur);
+    if (C.t >= 1){ C.t = 1; C.playing = false; setTimeout(stopCiclo, 2600); }
+    C.flash = Math.max(0, C.flash - dt * 1.6);
+  }
+
+  resizeIfNeeded();
+  updateCam();
+  prim.length = 0;
+  ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, W, H);
+  const D = derived();
+  buildScene(D);
+  render();
+  drawMapSheet(D);
+  drawSkyInset(D);
+
+  // firma (se incluye en la captura PNG)
+  ctx.globalAlpha = 1;
+  ctx.font = '10px ui-monospace,Menlo,Consolas,monospace';
+  ctx.fillStyle = 'rgba(125,142,163,.75)';
+  ctx.textBaseline = 'alphabetic';
+  const sig = 'Cosmogonía Subirats · El Libro del Sol (A. Subirats) · modelo interpretativo, escala relativa';
+  ctx.fillText(sig, W - ctx.measureText(sig).width - 14, H - 12);
+
+  // destello de la colisión
+  if (C.flash > .002){
+    ctx.fillStyle = 'rgba(255,244,214,' + clamp(C.flash, 0, 1).toFixed(3) + ')';
+    ctx.fillRect(0, 0, W, H);
+  }
+  updateHUD(now);
+}
+let lastW = 0, lastH = 0;
+function resizeIfNeeded(){
+  const r = cv.getBoundingClientRect();
+  if (Math.abs(r.width - lastW) > 1 || Math.abs(r.height - lastH) > 1 || !bgGrad){
+    resize(); makeBG(); lastW = r.width; lastH = r.height;
+  }
+}
+
+/* ---------------- HUD ---------------- */
+function updateHUD(now){
+  // barra y subtítulo del ciclo
+  const C = S.ciclo;
+  if (C.active){
+    barCiclo.style.width = (C.t * 100).toFixed(1) + '%';
+    const stage = C.t < .18 ? 0 : C.t < .50 ? 1 : C.t < .60 ? 2 : C.t < .76 ? 3 : 4;
+    const cap = CAPTION[stage];
+    if (captionEl.dataset.stage !== String(stage)){
+      captionEl.dataset.stage = String(stage);
+      captionEl.innerHTML = cap[0] + '<small>' + cap[1] + '</small>';
+      captionEl.classList.add('on');
+    }
+  } else if (captionEl.classList.contains('on')){
+    captionEl.classList.remove('on'); captionEl.dataset.stage = '-1';
+    barCiclo.style.width = '0%';
+  }
+  if (now - hudT < 140) return;
+  hudT = now;
+  fps = fpsN / (fpsAcc || 1); fpsAcc = 0; fpsN = 0;
+  const D = derived();
+  const _AA = azAlt(obsPos(), D.sun);
+  const esDeDayLine = esDeDia(obsPos(), D.sun);
+  const az = ((D.ang * 180 / Math.PI) % 360 + 360) % 360;
+  const polCls = D.pol >= 0 ? 'pol-pos' : 'pol-neg';
+  hud.innerHTML =
+    'FASE <b class="' + polCls + '">' + (D.pol >= 0 ? '+' : '−') + '</b> ' +
+    (D.pol >= 0 ? 'centrípeta → N' : 'centrífuga → S') + '<br>' +
+    'ESTACIÓN <b>' + estacionTxt(D.pol) + '</b><br>' +
+    'HORA <b>' + horaTxt(S.dayT) + '</b> · AZIMUT <b>' + az.toFixed(0) + '°</b><br>' +
+    'NEXO <b>r ' + D.rSun.toFixed(1) + ' u · h ' + S.sunH.toFixed(0) + ' u</b><br>' +
+    'OBS <b>' + fmtLatLon(S.obs.lat, S.obs.lon) + '</b> · az <b>' + _AA.az.toFixed(0) +
+    '°</b> alt <b>' + _AA.alt.toFixed(0) + '°</b> <b style="color:' +
+    (esDeDayLine ? '#ffd27a' : '#7f93a8') + '">' + (esDeDayLine ? 'DÍA' : 'NOCHE') + '</b><br>' +
+    'EMISIÓN <b style="color:' + (S.emision ? '#6fdc8c' : '#ff6286') + '">' +
+      (S.emision ? 'interruptor cerrado' : 'interruptor abierto') + '</b><br>' +
+    'PRIMS <b>' + prim.length + '</b> · <b>' + fps.toFixed(0) + '</b> fps';
+  if (!S.lockFase) sFase.value = D.pol.toFixed(2);
+  oFase.textContent = (S.lockFase ? 'manual · ' : '') + estacionTxt(D.pol).split(' · ')[0].toLowerCase();
+  sHora.value = (S.dayT * 24).toFixed(2);
+  oHora.textContent = horaTxt(S.dayT);
+}
+
+/* ---------------- controles ---------------- */
+const $ = id => document.getElementById(id);
+const sHora = $('sHora'), oHora = $('oHora'), sFase = $('sFase'), oFase = $('oFase');
+const sAlt = $('sAlt'), oAlt = $('oAlt'), sCono = $('sCono'), oCono = $('oCono');
+const sFlujo = $('sFlujo'), oFlujo = $('oFlujo'), sVel = $('sVel'), oVel = $('oVel');
+
+sHora.addEventListener('input', () => { S.dayT = (+sHora.value) / 24; });
+sFase.addEventListener('input', () => {
+  S.lockFase = true; S.pol = clamp(+sFase.value, -1, 1);
+  S.yearT = (Math.acos(clamp(S.pol, -1, 1)) / TAU);
+});
+sFase.addEventListener('dblclick', () => { S.lockFase = false; });
+sAlt.addEventListener('input', () => { S.sunH = +sAlt.value; oAlt.textContent = S.sunH.toFixed(0) + ' u'; });
+sCono.addEventListener('input', () => { S.cone = +sCono.value; oCono.textContent = S.cone + ' u'; });
+sFlujo.addEventListener('input', () => { S.flow = (+sFlujo.value) / 100; oFlujo.textContent = sFlujo.value + ' %'; });
+sVel.addEventListener('input', () => { S.speed = +sVel.value; oVel.textContent = S.speed.toFixed(2) + '×'; });
+const sLat = $('sLat'), oLat = $('oLat'), sLon = $('sLon'), oLon = $('oLon');
+sLat.addEventListener('input', () => { S.obs.lat = clamp(+sLat.value, -58, 85); oLat.textContent = fmtLatLon(S.obs.lat, S.obs.lon); });
+sLon.addEventListener('input', () => { S.obs.lon = clamp(+sLon.value, -180, 180); oLon.textContent = fmtLatLon(S.obs.lat, S.obs.lon); });
+
+document.querySelectorAll('[data-layer]').forEach(el => {
+  el.addEventListener('change', () => { S.layers[el.dataset.layer] = el.checked ? 1 : 0; });
+});
+function setViewObs(){
+  const D = derived(), O = obsPos();
+  const eye = [O[0], 2.6, O[2]];
+  const dir = sub3(D.sun, eye), dist = Math.hypot(dir[0], dir[1], dir[2]) || 1;
+  cam.tgt = D.sun.slice();
+  cam.dist = clamp(dist, 6, 900);
+  cam.yaw = Math.atan2(-dir[0]/dist, -dir[2]/dist);
+  cam.pitch = clamp(Math.asin(-dir[1]/dist), -.34, 1.5);
+}
+document.querySelectorAll('[data-view]').forEach(b => {
+  b.addEventListener('click', () => { if (b.dataset.view === 'obs') setViewObs(); else setView(b.dataset.view); });
+});
+$('btnReset').addEventListener('click', () => { setView('persp'); cam.tgt = [0,12,0]; });
+$('chkAuto').addEventListener('change', e => { S.autoRot = e.target.checked; });
+$('chkPlay').addEventListener('change', e => {
+  S.playing = e.target.checked;
+  if (S.playing){ S.lockFase = false; }
+});
+
+const btnSwitch = $('btnSwitch');
+function paintSwitch(){
+  btnSwitch.classList.toggle('on', S.emision);
+  btnSwitch.textContent = '⏻ El Interruptor: flujo ' + (S.emision ? 'CERRADO (luz emitida)' : 'ABIERTO (sin emisión)');
+}
+btnSwitch.addEventListener('click', () => { S.emision = !S.emision; paintSwitch(); });
+
+const btnCiclo = $('btnCiclo');
+function stopCiclo(){
+  S.ciclo.active = false; S.ciclo.playing = false; S.ciclo.t = 0; S.ciclo.flash = 0;
+  btnCiclo.textContent = '▶ Ciclo de los Soles (colisión)';
+  btnCiclo.classList.remove('on');
+}
+btnCiclo.addEventListener('click', () => {
+  const C = S.ciclo;
+  if (!C.active){ C.active = true; C.playing = true; C.t = 0; btnCiclo.textContent = '❚❚ Pausar ciclo'; btnCiclo.classList.add('on'); }
+  else if (C.t >= 1){ C.t = 0; C.playing = true; btnCiclo.textContent = '❚❚ Pausar ciclo'; }
+  else { C.playing = !C.playing; btnCiclo.textContent = C.playing ? '❚❚ Pausar ciclo' : '▶ Reanudar ciclo'; }
+});
+$('btnCicloReset').addEventListener('click', () => { stopCiclo(); captionEl.classList.remove('on'); });
+
+window.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' && e.target.type !== 'checkbox') return;
+  const k = e.key.toLowerCase();
+  if (k === ' '){ e.preventDefault(); S.playing = !S.playing; $('chkPlay').checked = S.playing; if (S.playing) S.lockFase = false; }
+  else if (k === '1') setView('persp');
+  else if (k === '2') setView('cenital');
+  else if (k === '3') setView('lateral');
+  else if (k === '4') setView('horizonte');
+  else if (k === '5') setView('superficie');
+  else if (k === '6') setViewObs();
+  else if (k === 'm'){ MS.open = !MS.open; }
+  else if (k === 'l'){ const el = document.querySelector('[data-layer="etiq"]'); el.checked = !el.checked; S.layers.etiq = el.checked ? 1 : 0; }
+  else if (k === 'i'){ S.emision = !S.emision; paintSwitch(); }
+  else if (k === 'c') btnCiclo.click();
+});
+
+/* =====================================================================
+   EXPORTADORES
+   ===================================================================== */
+function saveBlob(blob, name){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+}
+function saveText(txt, name, mime){ saveBlob(new Blob([txt], { type: mime || 'text/plain;charset=utf-8' }), name); }
+
+/* ---------- construcción de la malla (compartida por OBJ y STL) ---------- */
+function uvSphere(c, R, seg, rings){
+  const v = [], f = [];
+  for (let j = 0; j <= rings; j++){
+    const t = Math.PI * j / rings, y = Math.cos(t) * R, rr = Math.sin(t) * R;
+    for (let i = 0; i < seg; i++){
+      const a = i / seg * TAU;
+      v.push([c[0] + rr*Math.cos(a), c[1] + y, c[2] + rr*Math.sin(a)]);
+    }
+  }
+  for (let j = 0; j < rings; j++) for (let i = 0; i < seg; i++){
+    const a = j*seg + i, b = j*seg + (i+1)%seg, cc = (j+1)*seg + (i+1)%seg, d = (j+1)*seg + i;
+    if (j !== 0) f.push([a, b, cc]);
+    if (j !== rings-1) f.push([a, cc, d]);
+  }
+  return { v, f };
+}
+function cylSides(c, r0, r1, y0, y1, seg, out){
+  const v = [], f = [];
+  for (let i = 0; i < seg; i++){
+    const a = i/seg*TAU;
+    v.push([c[0]+r0*Math.cos(a), y0, c[2]+r0*Math.sin(a)]);
+    v.push([c[0]+r1*Math.cos(a), y1, c[2]+r1*Math.sin(a)]);
+  }
+  for (let i = 0; i < seg; i++){
+    const i2 = ((i+1)%seg);
+    const a = i*2, b = i*2+1, cc = i2*2, d = i2*2+1;
+    f.push([a, cc, d]); f.push([a, d, b]);
+  }
+  return { v, f };
+}
+
+function buildMesh(){
+  const D = derived();
+  const g = [];   // { name, mat, v:[], f:[[i,j,k]...], l:[[i,j]...] }
+  const G = (name, mat) => { const o = { name, mat, v:[], f:[], l:[] }; g.push(o); return o; };
+
+  /* --- plano infinito (losa) --- */
+  const gp = G('Plano_Infinito', 'plano');
+  const SEG = 72, RINGS = 14, TH = 1.6;
+  const base = gp.v.length;
+  for (let j = 0; j <= RINGS; j++){
+    const r = RP * Math.pow(j / RINGS, 1.06);
+    for (let i = 0; i <= SEG; i++){
+      const a = i / SEG * TAU;
+      gp.v.push([r*Math.cos(a), 0, r*Math.sin(a)]);
+    }
+  }
+  for (let j = 0; j < RINGS; j++) for (let i = 0; i < SEG; i++){
+    const a = base + j*(SEG+1) + i, b = a + 1, c = a + SEG + 1, d = c + 1;
+    gp.f.push([a, c, d]); gp.f.push([a, d, b]);
+  }
+  /* --- extensión punteada del plano (líneas) --- */
+  const ge = G('Plano_extension_infinita', 'rejilla');
+  for (let k = 1; k <= 3; k++){
+    const r = RP * (1 + .35*k), idx = [];
+    for (let i = 0; i <= 96; i++){ const a = i/96*TAU; idx.push(ge.v.push([r*Math.cos(a), -.05, r*Math.sin(a)]) - 1); }
+    for (let i = 0; i < idx.length - 1; i++) ge.l.push([idx[i], idx[i+1]]);
+  }
+  /* --- rejilla: anillos + radios + borde + centro --- */
+  const gr = G('Rejilla_y_polos', 'rejilla');
+  for (let k = 1; k <= 10; k++){
+    const r = RP*k/10, idx = [];
+    for (let i = 0; i <= 84; i++){ const a = i/84*TAU; idx.push(gr.v.push([r*Math.cos(a), .12, r*Math.sin(a)]) - 1); }
+    for (let i = 0; i < idx.length-1; i++) gr.l.push([idx[i], idx[i+1]]);
+  }
+  for (let k = 0; k < 24; k++){
+    const a = k/24*TAU;
+    const i0 = gr.v.push([0, .12, 0]) - 1, i1 = gr.v.push([Math.cos(a)*RP*1.9, .12, Math.sin(a)*RP*1.9]) - 1;
+    gr.l.push([i0, i1]);
+  }
+  /* --- trayectoria anual --- */
+  const gt = G('Trayectoria_anual', 'trayectoria');
+  [rTropMin(), rTropMax()].forEach(r => {
+    const idx = [];
+    for (let i = 0; i <= 90; i++){ const a = i/90*TAU; idx.push(gt.v.push([r*Math.cos(a), .6, r*Math.sin(a)]) - 1); }
+    for (let i = 0; i < idx.length-1; i++) gt.l.push([idx[i], idx[i+1]]);
+  });
+  {
+    const seg = 5*44, idx = [];
+    for (let i = 0; i <= seg; i++){
+      const s = i/seg, rr = lerp(rTropMin(), rTropMax(), (1-Math.cos(TAU*s))/2), a = TAU*s;
+      idx.push(gt.v.push([rr*Math.cos(a), .8, rr*Math.sin(a)]) - 1);
+    }
+    for (let i = 0; i < idx.length-1; i++) gt.l.push([idx[i], idx[i+1]]);
+  }
+  /* --- Sol holoprisma --- */
+  const gs = G('Sol_Holoprisma', 'sol');
+  const sph = uvSphere(D.sun, SUN_R, 28, 16);
+  gs.v = sph.v; gs.f = sph.f;
+  const ga = G('Anillos_prismaticos', 'anillos');
+  const SPEC = ['#ff5f6d','#ff9d3c','#f4e04d','#5fe08a','#41d3e2','#5b8cff','#a68bff'];
+  SPEC.forEach((col, i) => {
+    const dy = (i-3) * SUN_R * .34, rr = Math.sqrt(Math.max(.08, 1-(dy/SUN_R)*(dy/SUN_R)*.55)) * SUN_R * 1.34;
+    const idx = [];
+    for (let k = 0; k <= 48; k++){ const a = k/48*TAU; idx.push(ga.v.push([D.sun[0]+rr*Math.cos(a), D.sun[1]+dy, D.sun[2]+rr*Math.sin(a)]) - 1); }
+    for (let k = 0; k < idx.length-1; k++) ga.l.push([idx[k], idx[k+1]]);
+  });
+  /* --- cono de luz + círculo de día --- */
+  const gc = G('Cono_de_luz', 'cono');
+  const CS = 40;
+  for (let i = 0; i < CS; i++){
+    const a0 = i/CS*TAU, a1 = (i+1)/CS*TAU;
+    const i0 = gc.v.push(D.sun.slice()) - 1;
+    const i1 = gc.v.push([D.sun[0]+S.cone*Math.cos(a0), 0, D.sun[2]+S.cone*Math.sin(a0)]) - 1;
+    const i2 = gc.v.push([D.sun[0]+S.cone*Math.cos(a1), 0, D.sun[2]+S.cone*Math.sin(a1)]) - 1;
+    gc.f.push([i0, i1, i2]);
+  }
+  const gd = G('Circulo_de_dia', 'dia');
+  for (let j = 0; j < 8; j++){
+    const r0 = S.cone*j/8, r1 = S.cone*(j+1)/8, idx0 = [], idx1 = [];
+    for (let i = 0; i <= 48; i++){
+      const a = i/48*TAU;
+      idx0.push(gd.v.push([D.sun[0]+r0*Math.cos(a), .25, D.sun[2]+r0*Math.sin(a)]) - 1);
+      idx1.push(gd.v.push([D.sun[0]+r1*Math.cos(a), .25, D.sun[2]+r1*Math.sin(a)]) - 1);
+    }
+    for (let i = 0; i < 48; i++){ gd.f.push([idx0[i], idx1[i], idx1[i+1]]); gd.f.push([idx0[i], idx1[i+1], idx0[i+1]]); }
+  }
+  /* --- campo dieléctrico --- */
+  const gf = G('Campo_dielectrico', 'campo');
+  FIELD.forEach(fl => {
+    const idx = [];
+    fl.pts.forEach(p => idx.push(gf.v.push(p.slice()) - 1));
+    for (let i = 0; i < idx.length-1; i++) gf.l.push([idx[i], idx[i+1]]);
+  });
+  /* --- giroscopio --- */
+  const gg = G('Giroscopio', 'giro');
+  const gcyl = cylSides(GYRO.pos, 3.6, 3.6, .1, 1.6, 26, gg);
+  gcyl.v.forEach(v => gg.v.push(v)); gcyl.f.forEach(f => gg.f.push(f));
+  const hub = [GYRO.pos[0], 9, GYRO.pos[2]];
+  const ax = [Math.sin(AX_TILT)*Math.cos(GYRO.azA), Math.cos(AX_TILT), Math.sin(AX_TILT)*Math.sin(GYRO.azA)];
+  const [uu, vv] = perp(ax);
+  [[uu, ax, 1.22], [vv, ax, 1.02], [uu, vv, .82]].forEach(cfg => {
+    const idx = [];
+    for (let i = 0; i <= 44; i++){
+      const a = i/44*TAU, rr = 6.4*cfg[2];
+      idx.push(gg.v.push([hub[0]+Math.cos(a)*rr*cfg[0][0]+Math.sin(a)*rr*cfg[1][0],
+                          hub[1]+Math.cos(a)*rr*cfg[0][1]+Math.sin(a)*rr*cfg[1][1],
+                          hub[2]+Math.cos(a)*rr*cfg[0][2]+Math.sin(a)*rr*cfg[1][2]]) - 1);
+    }
+    for (let i = 0; i < idx.length-1; i++) gg.l.push([idx[i], idx[i+1]]);
+  });
+  {
+    const i0 = gg.v.push([hub[0]-ax[0]*SUN_R*2.1, hub[1]-ax[1]*SUN_R*2.1, hub[2]-ax[2]*SUN_R*2.1]) - 1;
+    const i1 = gg.v.push([hub[0]+ax[0]*SUN_R*2.1, hub[1]+ax[1]*SUN_R*2.1, hub[2]+ax[2]*SUN_R*2.1]) - 1;
+    const i2 = gg.v.push([hub[0]+ax[0]*105, hub[1]+ax[1]*105, hub[2]+ax[2]*105]) - 1;
+    gg.l.push([i0, i1]); gg.l.push([i1, i2]);
+  }
+  /* --- interruptor --- */
+  const gsw = G('El_Interruptor', 'interruptor');
+  const c = SW.pos, w = 5.2, h = 4.4, d = 3.4, y0 = .2;
+  const V = [];
+  for (const sx of [-1,1]) for (const sy of [0,1]) for (const sz of [-1,1]) V.push([c[0]+sx*w/2, y0+sy*h, c[2]+sz*d/2]);
+  V.forEach(v => gsw.v.push(v));
+  [[0,1,3,2],[4,6,7,5],[0,4,5,1],[2,3,7,6],[0,2,6,4],[1,5,7,3]].forEach(f => gsw.f.push(f));
+  {
+    const ang = S.emision ? .95 : -.62;
+    const piv = [c[0], y0+h*.62, c[2]];
+    const i0 = gsw.v.push(piv.slice()) - 1;
+    const i1 = gsw.v.push([piv[0]+Math.cos(ang)*5.6, piv[1]+Math.sin(ang)*5.6, piv[2]]) - 1;
+    gsw.l.push([i0, i1]);
+    const i2 = gsw.v.push(D.sun.slice()) - 1;
+    gsw.l.push([i1, i2]);
+  }
+  /* --- mapa: continentes, grática, hielo, sistemas, observador --- */
+  const gm = G('Terra_Firma_continentes', 'mapa');
+  for (const name in TERRA_LANDS){
+    const idx = TERRA_LANDS[name].map(p => { const q = map2plane(p[0], p[1]); return gm.v.push([q[0], .6, q[2]]) - 1; });
+    for (let i = 1; i + 1 < idx.length; i++) gm.f.push([idx[0], idx[i], idx[i+1]]);
+  }
+  {
+    const idx = TERRA_OVAL.map(p => { const q = map2plane(p[0], p[1]); return gm.v.push([q[0], .45, q[2]]) - 1; });
+    for (let i = 0; i < idx.length; i++) gm.l.push([idx[i], idx[(i+1)%idx.length]]);
+  }
+  const ggr = G('Graticula_lat_lon', 'rejilla');
+  for (let lat = 60; lat >= -60; lat -= 15){
+    const v = -lat/90;
+    const a3 = map2plane(-0.95, v), b3 = map2plane(0.95, v);
+    const i0 = ggr.v.push([a3[0], .8, a3[2]]) - 1, i1 = ggr.v.push([b3[0], .8, b3[2]]) - 1;
+    ggr.l.push([i0, i1]);
+  }
+  for (let lon = -150; lon <= 150; lon += 30){
+    const u = lon/180;
+    const a3 = map2plane(u, -0.80), b3 = map2plane(u, 0.95);
+    const i0 = ggr.v.push([a3[0], .8, a3[2]]) - 1, i1 = ggr.v.push([b3[0], .8, b3[2]]) - 1;
+    ggr.l.push([i0, i1]);
+  }
+  const ghi = G('Limites_oceanicos_y_plano_congelado', 'hielo');
+  {
+    const iA = TERRA_OVAL.map(p => { const q = map2plane(p[0], p[1]); return ghi.v.push([q[0]*1.0, .5, q[2]]) - 1; });
+    const iB = TERRA_OVAL.map(p => { const q = map2plane(p[0], p[1]); return ghi.v.push([q[0]*1.35, .5, q[2]*1.35]) - 1; });
+    for (let i = 0; i < iA.length; i++){
+      const j2 = (i+1)%iA.length;
+      ghi.f.push([iA[i], iB[i], iB[j2]]); ghi.f.push([iA[i], iB[j2], iA[j2]]);
+    }
+  }
+  const gsi = G('Sistemas_continentales_lejanos', 'hielo');
+  SISTEMAS.forEach((sy, si) => {
+    const RR = ovalRay(sy.az)*sy.f, cx = Math.cos(sy.az)*RR, cz = Math.sin(sy.az)*RR;
+    for (const rr of [14, 24, 36]){
+      const idx = [];
+      for (let i = 0; i <= 56; i++){ const a2 = i/56*TAU; idx.push(gsi.v.push([cx+rr*sy.s*Math.cos(a2), .55, cz+rr*sy.s*Math.sin(a2)]) - 1); }
+      for (let i = 0; i < idx.length-1; i++) gsi.l.push([idx[i], idx[i+1]]);
+    }
+    for (let b = 0; b < 4; b++){
+      const idx = blobPts(cx, cz, (7 + (b*5)%9)*sy.s, si*7+b+1, 12).map(p => gsi.v.push(p) - 1);
+      for (let i = 0; i < idx.length; i++) gsi.l.push([idx[i], idx[(i+1)%idx.length]]);
+    }
+  });
+  const gan = G('Anomalia_magnetica_Atlantico_Sur', 'anomalia');
+  {
+    const Aq2 = map2plane(ANOM.u, ANOM.v); const A = [Aq2[0], 0, Aq2[2]];
+    for (let k = 0; k < 3; k++){
+      const idx = [];
+      for (let i = 0; i <= 22; i++){
+        const s = i/22, a2 = s*TAU*1.4 + k*1.7;
+        const rr = ANOM.r*(.35 + .65*s)*(1 + .25*Math.sin(a2*2 + k));
+        idx.push(gan.v.push([A[0]+rr*Math.cos(a2), .9 + k*.25, A[2]+rr*Math.sin(a2)]) - 1);
+      }
+      for (let i = 0; i < idx.length-1; i++) gan.l.push([idx[i], idx[i+1]]);
+    }
+  }
+  const gru = G('Ruta_Cutty_Sark_y_megalitos', 'ruta');
+  {
+    const idx = RUTA_CUTTY.map(uv => { const q = map2plane(uv[0], uv[1]); return gru.v.push([q[0], 1.0, q[2]]) - 1; });
+    for (let i = 0; i < idx.length-1; i++) gru.l.push([idx[i], idx[i+1]]);
+    for (const m of MEGALITOS){
+      const q2 = map2plane(m.u, m.v); const p = [q2[0], 1.0, q2[2]];
+      const i0 = gru.v.push([p[0]-1.5, .9, p[2]+1.1]) - 1;
+      const i1 = gru.v.push([p[0]+1.5, .9, p[2]+1.1]) - 1;
+      const i2 = gru.v.push([p[0], .9, p[2]-1.7]) - 1;
+      gru.f.push([i0, i1, i2]);
+    }
+  }
+  const gob = G('Observador_y_visual_al_nexo', 'observador');
+  {
+    const O = obsPos(), idx = [];
+    for (let i = 0; i <= 26; i++){ const a2 = i/26*TAU; idx.push(gob.v.push([O[0]+2.6*Math.cos(a2), .9, O[2]+2.6*Math.sin(a2)]) - 1); }
+    for (let i = 0; i < idx.length-1; i++) gob.l.push([idx[i], idx[i+1]]);
+    const i1 = gob.v.push(D.sun.slice()) - 1;
+    gob.l.push([idx[0], i1]);
+  }
+  return g;
+}
+
+/* ---------- OBJ + MTL ---------- */
+const MTL = `# Materiales · Cosmogonía Subirats (El Libro del Sol)
+newmtl plano
+Ka 0.02 0.04 0.07
+Kd 0.055 0.09 0.14
+Ks 0.05 0.07 0.10
+Ns 8
+newmtl rejilla
+Ka 0.02 0.06 0.08
+Kd 0.16 0.35 0.45
+Ns 4
+newmtl sol
+Ka 0.55 0.36 0.06
+Kd 0.96 0.72 0.25
+Ke 0.85 0.60 0.15
+Ns 60
+newmtl anillos
+Ka 0.35 0.30 0.20
+Kd 0.90 0.85 0.55
+Ke 0.35 0.30 0.18
+Ns 40
+newmtl cono
+Ka 0.30 0.22 0.06
+Kd 1.00 0.82 0.45
+Ke 0.30 0.22 0.08
+d 0.16
+Ns 10
+newmtl dia
+Ka 0.30 0.24 0.10
+Kd 1.00 0.85 0.55
+Ke 0.22 0.17 0.07
+d 0.30
+Ns 6
+newmtl campo
+Ka 0.05 0.20 0.10
+Kd 0.30 0.82 0.48
+Ke 0.10 0.30 0.16
+Ns 20
+newmtl trayectoria
+Ka 0.15 0.10 0.25
+Kd 0.62 0.52 0.95
+Ke 0.18 0.14 0.35
+Ns 20
+newmtl giro
+Ka 0.10 0.12 0.14
+Kd 0.62 0.70 0.78
+Ks 0.60 0.65 0.70
+Ns 90
+newmtl mapa
+Ka 0.04 0.08 0.12
+Kd 0.16 0.26 0.36
+Ns 6
+newmtl hielo
+Ka 0.10 0.14 0.17
+Kd 0.62 0.78 0.88
+Ks 0.40 0.50 0.55
+Ns 30
+newmtl anomalia
+Ka 0.16 0.10 0.24
+Kd 0.72 0.55 0.95
+Ke 0.20 0.14 0.34
+Ns 20
+newmtl ruta
+Ka 0.06 0.16 0.22
+Kd 0.45 0.80 0.95
+Ke 0.10 0.24 0.30
+Ns 20
+newmtl observador
+Ka 0.06 0.20 0.10
+Kd 0.44 0.86 0.55
+Ke 0.12 0.30 0.16
+Ns 20
+newmtl interruptor
+Ka 0.12 0.05 0.07
+Kd 0.75 0.25 0.35
+Ns 40
+`;
+function exportOBJ(){
+  const g = buildMesh();
+  let o = '# Cosmogonia Subirats - El Sistema del Plano Infinito\n' +
+          '# Modelo interpretativo de "El Libro del Sol" (Antonio Subirats)\n' +
+          '# Escala relativa (unidades arbitrarias). Norte = centro del plano, Sur = borde.\n' +
+          '# Generado: ' + new Date().toISOString() + '\n' +
+          'mtllib cosmogonia_subirats.mtl\n\n';
+  let n = 0;
+  for (const grp of g){
+    o += 'o ' + grp.name.replace(/\s+/g, '_') + '\nusemtl ' + grp.mat + '\n';
+    const base = n;
+    for (const v of grp.v){ o += 'v ' + v[0].toFixed(4) + ' ' + v[1].toFixed(4) + ' ' + v[2].toFixed(4) + '\n'; n++; }
+    for (const f of grp.f) o += 'f ' + (base+f[0]+1) + ' ' + (base+f[1]+1) + ' ' + (base+f[2]+1) + '\n';
+    for (const l of grp.l) o += 'l ' + (base+l[0]+1) + ' ' + (base+l[1]+1) + '\n';
+    o += '\n';
+  }
+  saveText(o, 'cosmogonia_subirats.obj', 'model/obj;charset=utf-8');
+  saveText(MTL, 'cosmogonia_subirats.mtl', 'text/plain;charset=utf-8');
+}
+
+/* ---------- STL binario (sólidos imprimibles + soporte) ---------- */
+function exportSTL(){
+  const D = derived();
+  const tris = [];
+  const quad = (a,b,c,d) => { tris.push([a,b,c]); tris.push([a,c,d]); };
+  // losa del plano
+  const SEG = 64, TH = 2;
+  for (let i = 0; i < SEG; i++){
+    const a0 = i/SEG*TAU, a1 = (i+1)/SEG*TAU;
+    const p = (r,a,y) => [r*Math.cos(a), y, r*Math.sin(a)];
+    quad(p(0,a0,0), p(RP,a0,0), p(RP,a1,0), p(0,a1,0));
+    quad(p(0,a1,-TH), p(RP,a1,-TH), p(RP,a0,-TH), p(0,a0,-TH));
+    quad(p(RP,a0,0), p(RP,a0,-TH), p(RP,a1,-TH), p(RP,a1,0));
+  }
+  // sol (esfera)
+  const sp = uvSphere(D.sun, SUN_R, 24, 14);
+  sp.f.forEach(f => tris.push([sp.v[f[0]], sp.v[f[1]], sp.v[f[2]]]));
+  // columna de soporte (para impresión)
+  const cs = cylSides([D.sun[0], 0, D.sun[2]], 1.6, .5, -TH, D.sun[1]-SUN_R, 20);
+  cs.f.forEach(f => tris.push([cs.v[f[0]], cs.v[f[1]], cs.v[f[2]]]));
+  // rotor del giroscopio
+  const hub = [GYRO.pos[0], 9, GYRO.pos[2]];
+  const ax = [Math.sin(AX_TILT)*Math.cos(GYRO.azA), Math.cos(AX_TILT), Math.sin(AX_TILT)*Math.sin(GYRO.azA)];
+  const [uu, vv] = perp(ax);
+  const disc = (rr, off) => {
+    const pts = [];
+    for (let i = 0; i < 28; i++){ const a = i/28*TAU;
+      pts.push([hub[0]+Math.cos(a)*rr*uu[0]+Math.sin(a)*rr*vv[0]+ax[0]*off,
+                hub[1]+Math.cos(a)*rr*uu[1]+Math.sin(a)*rr*vv[1]+ax[1]*off,
+                hub[2]+Math.cos(a)*rr*uu[2]+Math.sin(a)*rr*vv[2]+ax[2]*off]); }
+    return pts;
+  };
+  const d0 = disc(6.4*.82, -.5), d1 = disc(6.4*.82, .5);
+  for (let i = 0; i < 28; i++){
+    const j = (i+1)%28;
+    quad(d0[i], d0[j], d1[j], d1[i]);
+    tris.push([[hub[0]-ax[0]*.5, hub[1]-ax[1]*.5, hub[2]-ax[2]*.5], d0[j], d0[i]]);
+    tris.push([[hub[0]+ax[0]*.5, hub[1]+ax[1]*.5, hub[2]+ax[2]*.5], d1[i], d1[j]]);
+  }
+  // caja del interruptor
+  const c = SW.pos, w = 5.2, h = 4.4, d = 3.4, y0 = .2;
+  const V = [];
+  for (const sx of [-1,1]) for (const sy of [0,1]) for (const sz of [-1,1]) V.push([c[0]+sx*w/2, y0+sy*h, c[2]+sz*d/2]);
+  const BX = [[0,1,3,2],[4,6,7,5],[0,4,5,1],[2,3,7,6],[0,2,6,4],[1,5,7,3]];
+  BX.forEach(f => quad(V[f[0]], V[f[1]], V[f[2]], V[f[3]]));
+
+  const buf = new ArrayBuffer(84 + tris.length * 50);
+  const dv = new DataView(buf);
+  const head = 'Cosmogonia Subirats - El Libro del Sol (solidos + soporte de impresion)';
+  for (let i = 0; i < 80; i++) dv.setUint8(i, i < head.length ? head.charCodeAt(i) : 32);
+  dv.setUint32(80, tris.length, true);
+  let off = 84;
+  for (const t of tris){
+    const u = [t[1][0]-t[0][0], t[1][1]-t[0][1], t[1][2]-t[0][2]];
+    const v = [t[2][0]-t[0][0], t[2][1]-t[0][1], t[2][2]-t[0][2]];
+    let nx = u[1]*v[2]-u[2]*v[1], ny = u[2]*v[0]-u[0]*v[2], nz = u[0]*v[1]-u[1]*v[0];
+    const L = Math.hypot(nx, ny, nz) || 1; nx/=L; ny/=L; nz/=L;
+    dv.setFloat32(off, nx, true); dv.setFloat32(off+4, ny, true); dv.setFloat32(off+8, nz, true); off += 12;
+    for (const p of t){ dv.setFloat32(off, p[0], true); dv.setFloat32(off+4, p[1], true); dv.setFloat32(off+8, p[2], true); off += 12; }
+    dv.setUint16(off, 0, true); off += 2;
+  }
+  saveBlob(new Blob([buf], { type:'application/sla' }), 'cosmogonia_subirats.stl');
+}
+
+function exportPNG(){
+  cv.toBlob(b => saveBlob(b, 'cosmogonia_subirats_' + Date.now() + '.png'), 'image/png');
+}
+$('btnOBJ').addEventListener('click', exportOBJ);
+$('btnSTL').addEventListener('click', exportSTL);
+$('btnPNG').addEventListener('click', exportPNG);
+
+/* ---------------- arranque ---------------- */
+resize(); makeBG(); initCampo(); initNexos(); paintSwitch();
+oAlt.textContent = S.sunH + ' u'; oCono.textContent = S.cone + ' u';
+oFlujo.textContent = Math.round(S.flow*100) + ' %'; oVel.textContent = S.speed.toFixed(2) + '×';
+requestAnimationFrame(frame);
+
+</script>
+</body>
+</html>
